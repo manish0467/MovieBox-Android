@@ -50,6 +50,9 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: 1.90.0
+          # The gates need both, and the action does not install them for a
+          # pinned toolchain on its own.
+          components: rustfmt, clippy
           targets: aarch64-linux-android, x86_64-linux-android
       - uses: Swatinem/rust-cache@v2
         with:
