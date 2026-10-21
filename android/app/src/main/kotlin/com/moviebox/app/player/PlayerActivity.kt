@@ -164,6 +164,20 @@ class PlayerActivity : ComponentActivity() {
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 updateProgressState()
             }
+
+            override fun onMetadata(metadata: androidx.media3.common.Metadata) {
+                val extracted = PlayerChapters.extractFromMetadata(metadata)
+                if (extracted.isNotEmpty()) {
+                    viewModel.setChapters(extracted)
+                }
+            }
+
+            override fun onMediaMetadataChanged(mediaMetadata: androidx.media3.common.MediaMetadata) {
+                val extracted = PlayerChapters.extractFromMediaMetadata(mediaMetadata)
+                if (extracted.isNotEmpty()) {
+                    viewModel.setChapters(extracted)
+                }
+            }
         })
 
         // Periodic watch progress recording back to the bridge

@@ -296,34 +296,38 @@ fun PlayerControlsOverlay(
                 }
 
                 PlayerDialogType.CHAPTERS -> {
-                    AlertDialog(
-                        onDismissRequest = onDismissDialog,
-                        title = { Text("Chapters") },
-                        text = {
-                            LazyColumn {
-                                items(uiState.chapters) { chapter ->
-                                    val startSec = chapter.startTimeMs / 1000
-                                    val min = startSec / 60
-                                    val sec = startSec % 60
-                                    val timeLabel = String.format("%02d:%02d", min, sec)
+                    if (uiState.chapters.isNotEmpty()) {
+                        AlertDialog(
+                            onDismissRequest = onDismissDialog,
+                            title = { Text("Chapters") },
+                            text = {
+                                LazyColumn {
+                                    items(uiState.chapters) { chapter ->
+                                        val startSec = chapter.startTimeMs / 1000
+                                        val min = startSec / 60
+                                        val sec = startSec % 60
+                                        val timeLabel = String.format("%02d:%02d", min, sec)
 
-                                    DialogOptionRow(
-                                        title = "${chapter.title} ($timeLabel)",
-                                        selected = uiState.currentPositionMs in chapter.startTimeMs..chapter.endTimeMs,
-                                        onClick = {
-                                            onSeekToChapter(chapter)
-                                            onDismissDialog()
-                                        },
-                                    )
+                                        DialogOptionRow(
+                                            title = "${chapter.title} ($timeLabel)",
+                                            selected = uiState.currentPositionMs in chapter.startTimeMs..chapter.endTimeMs,
+                                            onClick = {
+                                                onSeekToChapter(chapter)
+                                                onDismissDialog()
+                                            },
+                                        )
+                                    }
                                 }
-                            }
-                        },
-                        confirmButton = {
-                            TextButton(onClick = onDismissDialog) {
-                                Text("Close")
-                            }
-                        },
-                    )
+                            },
+                            confirmButton = {
+                                TextButton(onClick = onDismissDialog) {
+                                    Text("Close")
+                                }
+                            },
+                        )
+                    } else {
+                        onDismissDialog()
+                    }
                 }
 
                 PlayerDialogType.NONE, PlayerDialogType.SUBTITLE_STYLE -> Unit
