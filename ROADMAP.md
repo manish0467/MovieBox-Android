@@ -16,6 +16,9 @@ dependency on the `v0.1.28` tag.
 - A colour scheme picker (system, light, dark, OLED black and three accents)
   with Material 3 dynamic colour, stored by the engine and applied at startup
 - Localisation in Bengali, Hindi and Spanish
+- **Live TV**: add an M3U playlist by URL or file path, browse and search its
+  channels, and play them; the playlist list is shared with the terminal
+  client
 
 ## Now — the player and the interface
 
