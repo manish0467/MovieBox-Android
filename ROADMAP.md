@@ -13,6 +13,9 @@ dependency on the `v0.1.28` tag.
 - Downloads: start, live progress, pause, resume (the signed URL is re-resolved
   when it expires), remove, open, and the finished file is indexed into the
   system media store
+- A colour scheme picker (system, light, dark, OLED black and three accents)
+  with Material 3 dynamic colour, stored by the engine and applied at startup
+- Localisation in Bengali, Hindi and Spanish
 
 ## Now — the player and the interface
 
@@ -28,8 +31,8 @@ features that make it feel like a real player, in order of value:
 | Picture in picture, properly driven | `enterPictureInPictureMode()` on user intent | player lane |
 | Background playback | `MediaSession` + `MediaSessionService` + a media notification | player lane |
 | Seek preview thumbnails | a thumbnail loader over the scrub position | player lane |
-| Theme set and picker (light, dark, OLED, accents) + dynamic colour | `MovieBoxTheme` variants, stored in the core's `config.json` | design lane |
-| Localisation | `res/values/strings.xml` and `values-xx/` | design lane |
+| ~~Theme set and picker + dynamic colour~~ | shipped | design lane |
+| ~~Localisation~~ | shipped | design lane |
 | Tablet and adaptive layouts | `res/layout*` and window size classes | design lane |
 | Accessibility (TalkBack, font scaling) | semantics and a Compose pass | design lane |
 
