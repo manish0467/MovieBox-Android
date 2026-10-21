@@ -78,6 +78,8 @@ dependencies {
     implementation(libs.androidx.media3.exoplayer)
     implementation(libs.androidx.media3.ui)
     implementation(libs.androidx.media3.datasource.okhttp)
+    // Live TV channels are HLS streams.
+    implementation(libs.androidx.media3.exoplayer.hls)
 
     implementation(libs.coil.compose)
     implementation(libs.kotlinx.serialization.json)

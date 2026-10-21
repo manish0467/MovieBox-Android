@@ -63,6 +63,21 @@ object NativeBridge {
     external fun nativeRecordWatchProgress(itemJson: String): String
 
     @JvmStatic
+    external fun nativeTvPlaylists(): String
+
+    @JvmStatic
+    external fun nativeTvAddPlaylist(source: String): String
+
+    @JvmStatic
+    external fun nativeTvRemovePlaylist(source: String): String
+
+    @JvmStatic
+    external fun nativeTvChannels(requestJson: String): String
+
+    @JvmStatic
+    external fun nativeTvResolve(streamUrl: String): String
+
+    @JvmStatic
     external fun nativeGetThemeMode(): String
 
     @JvmStatic

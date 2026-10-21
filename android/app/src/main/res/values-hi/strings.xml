@@ -15,4 +15,14 @@
 
     <string name="appearance">रूप</string>
     <string name="close">बंद करें</string>
+
+    <string name="live_tv">लाइव टीवी</string>
+    <string name="tv_playlists">टीवी प्लेलिस्ट</string>
+    <string name="tv_playlist_url">प्लेलिस्ट URL या फ़ाइल पथ</string>
+    <string name="tv_search_hint">चैनल खोजें</string>
+    <string name="tv_no_channels">कोई चैनल नहीं। शुरू करने के लिए प्लेलिस्ट जोड़ें।</string>
+    <string name="refresh">रिफ्रेश</string>
+    <string name="add">जोड़ें</string>
+
+    <string name="remove">हटाएँ</string>
 </resources>

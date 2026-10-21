@@ -23,9 +23,11 @@ import com.moviebox.app.core.PlaybackSource
 import com.moviebox.app.core.SubtitleOption
 import com.moviebox.app.player.PlayerActivity
 import com.moviebox.app.ui.DetailsViewModel
+import com.moviebox.app.ui.LiveTvViewModel
 import com.moviebox.app.ui.MovieBoxViewModel
 import com.moviebox.app.ui.screens.DetailsScreen
 import com.moviebox.app.ui.screens.HomeScreen
+import com.moviebox.app.ui.screens.LiveTvScreen
 import com.moviebox.app.ui.theme.MovieBoxTheme
 import com.moviebox.app.ui.theme.MovieBoxThemeMode
 import kotlinx.coroutines.launch
@@ -42,6 +44,7 @@ class MainActivity : ComponentActivity() {
 
     private val homeViewModel: MovieBoxViewModel by viewModels()
     private val detailsViewModel: DetailsViewModel by viewModels()
+    private val liveTvViewModel: LiveTvViewModel by viewModels()
     private val repository = MovieBoxRepository()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -53,6 +56,7 @@ class MainActivity : ComponentActivity() {
                 MovieBoxApp(
                     homeViewModel = homeViewModel,
                     detailsViewModel = detailsViewModel,
+                    liveTvViewModel = liveTvViewModel,
                     themeMode = themeMode,
                     onThemeSelected = homeViewModel::selectThemeMode,
                     onPlay = ::launchPlayer,
@@ -179,6 +183,7 @@ class MainActivity : ComponentActivity() {
 private fun MovieBoxApp(
     homeViewModel: MovieBoxViewModel,
     detailsViewModel: DetailsViewModel,
+    liveTvViewModel: LiveTvViewModel,
     themeMode: MovieBoxThemeMode,
     onThemeSelected: (MovieBoxThemeMode) -> Unit,
     onPlay: (
@@ -201,6 +206,7 @@ private fun MovieBoxApp(
     val navController = rememberNavController()
     val homeState by homeViewModel.state.collectAsStateWithLifecycle()
     val detailsState by detailsViewModel.state.collectAsStateWithLifecycle()
+    val liveTvState by liveTvViewModel.state.collectAsStateWithLifecycle()
 
     NavHost(navController = navController, startDestination = "home") {
         composable("home") {
@@ -228,11 +234,43 @@ private fun MovieBoxApp(
                 },
                 themeMode = themeMode,
                 onThemeSelected = homeViewModel::selectThemeMode,
+                onOpenLiveTv = { navController.navigate("live") },
                 onPauseDownload = homeViewModel::pauseDownload,
                 onResumeDownload = homeViewModel::resumeDownload,
                 onRemoveDownload = homeViewModel::removeDownload,
                 onRefreshDownloads = homeViewModel::loadDownloads,
                 onOpenDownload = onOpenDownload,
+            )
+        }
+
+        composable("live") {
+            LiveTvScreen(
+                state = liveTvState,
+                onBack = { navController.popBackStack() },
+                onQueryChange = liveTvViewModel::onQueryChange,
+                onRefresh = liveTvViewModel::loadChannels,
+                onOpenManager = { liveTvViewModel.showManager(!liveTvState.showManager) },
+                onAddPlaylist = liveTvViewModel::addPlaylist,
+                onNewPlaylistChange = liveTvViewModel::onNewPlaylistChange,
+                onRemovePlaylist = liveTvViewModel::removePlaylist,
+                onPlay = { channel ->
+                    liveTvViewModel.resolve(channel) { source ->
+                        onPlay(
+                            source,
+                            channel.name,
+                            "moviebox",
+                            "",
+                            null,
+                            0,
+                            0,
+                            null,
+                            0L,
+                            null,
+                            null,
+                            emptyList(),
+                        )
+                    }
+                },
             )
         }
 

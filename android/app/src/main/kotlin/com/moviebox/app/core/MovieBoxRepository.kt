@@ -274,6 +274,55 @@ class MovieBoxRepository {
     }
 
     /* ------------------------------------------------------------------ *
+     * Live TV
+     * ------------------------------------------------------------------ */
+
+    /** The playlists the user configured. */
+    suspend fun tvPlaylists(): List<TvPlaylist> = withContext(Dispatchers.IO) {
+        decodeData(
+            NativeBridge.nativeTvPlaylists(),
+            TvPlaylistsPayload.serializer(),
+        ).playlists
+    }
+
+    /** Adds a playlist (a URL or a local file path). */
+    suspend fun addTvPlaylist(source: String): List<TvPlaylist> = withContext(Dispatchers.IO) {
+        decodeData(
+            NativeBridge.nativeTvAddPlaylist(source),
+            TvPlaylistsPayload.serializer(),
+        ).playlists
+    }
+
+    /** Removes a playlist. */
+    suspend fun removeTvPlaylist(source: String): List<TvPlaylist> = withContext(Dispatchers.IO) {
+        decodeData(
+            NativeBridge.nativeTvRemovePlaylist(source),
+            TvPlaylistsPayload.serializer(),
+        ).playlists
+    }
+
+    /** The channels of the configured playlists, filtered by the query. */
+    suspend fun tvChannels(query: String, limit: Int = 300): List<TvChannel> =
+        withContext(Dispatchers.IO) {
+            val request = TvChannelsRequest(query = query, limit = limit)
+            decodeData(
+                NativeBridge.nativeTvChannels(
+                    json.encodeToString(TvChannelsRequest.serializer(), request),
+                ),
+                TvChannelsPayload.serializer(),
+            ).channels
+        }
+
+    /** The playable source of a channel. */
+    suspend fun resolveTvChannel(streamUrl: String): PlaybackSource =
+        withContext(Dispatchers.IO) {
+            decodeData(
+                NativeBridge.nativeTvResolve(streamUrl),
+                PlaybackSource.serializer(),
+            )
+        }
+
+    /* ------------------------------------------------------------------ *
      * Appearance
      * ------------------------------------------------------------------ */
 

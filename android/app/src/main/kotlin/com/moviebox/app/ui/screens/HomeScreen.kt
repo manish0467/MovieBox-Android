@@ -35,6 +35,7 @@ import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.LiveTv
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.AssistChip
@@ -110,6 +111,7 @@ fun HomeScreen(
     onRefreshDownloads: () -> Unit = {},
     themeMode: MovieBoxThemeMode = MovieBoxThemeMode.SYSTEM,
     onThemeSelected: (MovieBoxThemeMode) -> Unit = {},
+    onOpenLiveTv: () -> Unit = {},
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     var showAppearance by remember { mutableStateOf(false) }
@@ -133,6 +135,12 @@ fun HomeScreen(
         topBar = {
             TopAppBar(
                 actions = {
+                    IconButton(onClick = onOpenLiveTv) {
+                        Icon(
+                            Icons.Filled.LiveTv,
+                            contentDescription = stringResource(R.string.live_tv),
+                        )
+                    }
                     IconButton(onClick = { showAppearance = true }) {
                         Icon(
                             Icons.Filled.Settings,
