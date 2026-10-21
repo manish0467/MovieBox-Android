@@ -39,55 +39,6 @@ features that make it feel like a real player, in order of value:
 | Tablet and adaptive layouts | `res/layout*` and window size classes | design lane |
 | Accessibility (TalkBack, font scaling) | semantics and a Compose pass | design lane |
 
-## Next — Live TV
-
-M3U playlist support. The terminal client already has TV mode, so the engine
-mostly exists; the work is bridge plumbing and the app side.
-
-**Design (settled)**
-
-*The core* — `providers::tv` provides `M3UParser::fetch_playlist` (remote
-**and** local file, 24 h disk cache, 15 MB cap), `parse_m3u` and the
-`Channel { id, name, logo, group, stream_url }` model, which is already
-`Serialize`.
-
-*One refactor first.* The playlist list currently lives in the terminal UI
-(`save_tv_playlists` / `load_tv_playlists_from_config` in `src/tui/app/mod.rs`)
-as a JSON array of strings in `<config_dir>/tv_config.json`. Lift it into the
-core as `config::load_tv_playlists()` / `config::save_tv_playlists(&[String])`
-and let the terminal client call those. The app and the terminal client then
-share one playlist file.
-
-*The bridge* — five entry points:
-
-| Function | Purpose |
-| :--- | :--- |
-| `nativeTvPlaylists()` | The configured playlist URLs and local paths. |
-| `nativeTvAddPlaylist(url)` / `nativeTvRemovePlaylist(url)` | Maintain `tv_config.json`. |
-| `nativeTvChannels(query, limit)` | Fetch every playlist in parallel, merge, drop empty and duplicate stream URLs, then filter by name and group **in Rust**. |
-| `nativeTvResolve(streamUrl)` | The playable URL plus the headers the playlist fetch used. |
-
-Filtering in Rust is deliberate: a 15 MB M3U is tens of thousands of
-channels, and shipping all of them across JNI on every keystroke would jank
-the UI. The app renders a list, exactly like its other screens.
-
-*The app* — a fifth bottom-navigation destination with the channel list grouped
-by `group`, a search field that calls `nativeTvChannels(query)` as you type, a
-playlist manager mirroring the terminal client's `/config` popup, and
-tap-to-play through the existing player.
-
-*Notes*
-
-- Plain `http://` playlists already work; the Android network security
-  configuration permits cleartext.
-- Scoped storage means a user cannot point at `/sdcard/…`. Offer *import file*
-  through the Storage Access Framework, copy it into the app's directory and use
-  that path — the core already handles local files.
-- The core README mentions "EPG support" for Live TV. There is no EPG code
-  today: the parser reads `tvg-id`, `tvg-logo` and `group-title` only.
-  Either implement XMLTV parsing or correct the claim; it is deliberately not
-  part of this work.
-
 ## Later
 
 - **Casting.** The Cast SDK plus a button on the player. This needs a Cast
@@ -102,9 +53,10 @@ tap-to-play through the existing player.
 - **Custom playlists** on top of favourites.
 - **Per-source quality memory**, so the app remembers the resolution you
   picked last time.
-- **Release signing.** The published APK is debug-signed, so it cannot replace
-  a release build. A release keystore, a signed build in CI and store metadata
-  are needed for anything beyond sideloading.
+- ~~Release signing.~~ Shipped: the key is read from `keystore.properties` or
+  the environment, a signed `app-release.apk` is published and its
+  certificate fingerprint is in `docs/android.md`. Still open: a CI job that
+  signs from a secret, and the store metadata.
 - **An in-app update check** against the GitHub releases, mirroring the
   terminal client's self-updater.
 - **A signing fingerprint in the README**, next to the `SHA256SUMS` file.

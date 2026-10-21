@@ -233,19 +233,55 @@ Rust library inside the APK and updates through the store.
 
 ### The current build
 
-A signed-ready debug APK is published as a GitHub release and can be installed
-right now:
+Two APKs are published as a GitHub release and can be installed right now:
 
 ```bash
-gh release download android-preview-1 --repo manish0467/MovieBox-Tui --pattern "*.apk"
-adb install -r moviebox-android-preview.apk
+gh release download android-preview-1 --repo manish0467/MovieBox-Android --pattern "*.apk"
+adb install -r app-release.apk   # signed, minified
+adb install -r app-debug.apk     # debug signed, for the emulator
 ```
 
-or copy the APK to the phone and open it (allow "unknown sources"). It is a
-**debug** build, so it is debug-signed and cannot be installed over a release
-build; a signed release is the next step. The APK covers `arm64-v8a` (real
-devices) and `x86_64` (the emulator), needs Android 7 (API 24) or newer, and
-needs the INTERNET permission only.
+or copy the APK to the phone and open it (allow "unknown sources"). Both cover
+`arm64-v8a` (real devices) and `x86_64` (the emulator), need Android 7 (API 24)
+or newer, and need the INTERNET permission only.
+
+### Signing a release
+
+The signing key never enters the repository. `android/app/build.gradle.kts`
+reads the key from `android/keystore.properties` (gitignored) or from the
+environment:
+
+```properties
+storeFile=/home/you/keystore/moviebox-release.jks
+storePassword=…
+keyAlias=moviebox
+keyPassword=…
+```
+
+| Variable | Purpose |
+| :--- | :--- |
+| `MOVIEBOX_STORE_FILE` | the path of the `.jks` file |
+| `MOVIEBOX_STORE_PASSWORD` | the store password |
+| `MOVIEBOX_KEY_ALIAS` | the key alias |
+| `MOVIEBOX_KEY_PASSWORD` | the key password |
+
+Without them the release build is produced unsigned, so a checkout still
+builds. With them:
+
+```bash
+cd android && ./gradlew assembleRelease
+```
+
+The signing certificate of the current preview key:
+
+```text
+SHA-256: 8bf4b05ba6e56604949df829f526b361855f85268b9e81ada1821fa94c2db05c
+SHA-1:   d572d2e33a514ed59199edfef50457104c20d553
+DN:      CN=MovieBox, OU=MovieBox, O=MovieBox
+```
+
+Keep the `.jks` file and its passwords — a store listing is bound to the
+certificate, and a lost key means a new application id.
 
 ## Verified build
 
@@ -254,9 +290,9 @@ The following was reproduced on this repository:
 | Step | Result |
 | :--- | :--- |
 | `cargo build --no-default-features` | ✅ headless core, no terminal deps |
-| `cargo build -p moviebox-android --target aarch64-linux-android --release` | ✅ `libmoviebox_android.so` (5.8 MB, 14 JNI symbols) |
-| `./gradlew assembleDebug` | ✅ `app-debug.apk` (26.9 MB) |
-| `./gradlew assembleRelease` | ✅ `app-release-unsigned.apk` (8.2 MB, R8 + resource shrinking) |
+| `cargo build -p moviebox-android --target aarch64-linux-android --release` | ✅ `libmoviebox_android.so` (6.1 MB, 26 JNI symbols) |
+| `./gradlew assembleDebug` | ✅ `app-debug.apk` (38.8 MB) |
+| `./gradlew assembleRelease` | ✅ `app-release.apk` (15.1 MB, R8 + resource shrinking, signed) |
 
 ## Roadmap
 
