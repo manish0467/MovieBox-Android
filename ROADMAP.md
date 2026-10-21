@@ -27,13 +27,13 @@ features that make it feel like a real player, in order of value:
 
 | Feature | Mechanism | Owner |
 | :--- | :--- | :--- |
-| Gesture controls (brightness, volume, seek) | `Modifier.pointerInput` on the surface | player lane |
-| Chapters and seek-to-chapter | Media3 `chapterMetadata` on `MediaMetadata` | player lane |
-| Playback speed 0.25–2× | `PlaybackParameters(speed)` | player lane |
-| Subtitle styling (size, colour, background) | `CaptionStyleCompat` on the `SubtitleView` | player lane |
-| Picture in picture, properly driven | `enterPictureInPictureMode()` on user intent | player lane |
-| Background playback | `MediaSession` + `MediaSessionService` + a media notification | player lane |
-| Seek preview thumbnails | a thumbnail loader over the scrub position | player lane |
+| ~~Gesture controls (brightness, volume, seek)~~ | shipped | player lane |
+| ~~Chapters and seek-to-chapter~~ | shipped | player lane |
+| ~~Playback speed 0.25–2×~~ | shipped | player lane |
+| ~~Subtitle styling (size, colour, background)~~ | shipped | player lane |
+| ~~Picture in picture, properly driven~~ | shipped | player lane |
+| ~~Background playback~~ (the media notification, the session) | shipped | player lane |
+| ~~Seek preview thumbnails~~ | shipped | player lane |
 | ~~Theme set and picker + dynamic colour~~ | shipped | design lane |
 | ~~Localisation~~ | shipped | design lane |
 | Tablet and adaptive layouts | `res/layout*` and window size classes | design lane |

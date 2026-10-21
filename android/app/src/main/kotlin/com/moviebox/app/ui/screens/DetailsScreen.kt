@@ -3,6 +3,7 @@ package com.moviebox.app.ui.screens
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -383,41 +384,63 @@ private fun ReleaseRow(
     onPlay: () -> Unit,
     onDownload: () -> Unit,
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = release.filename,
-                style = MaterialTheme.typography.bodyMedium,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = buildString {
-                    append(release.sourceLabel)
-                    release.quality?.let { append(" · ").append(it) }
-                    release.codec?.let { append(" · ").append(it) }
-                    release.language?.let { append(" · ").append(it) }
-                },
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        Spacer(modifier = Modifier.width(8.dp))
-        OutlinedButton(onClick = onDownload) {
-            Icon(Icons.Filled.Download, contentDescription = stringResource(R.string.download))
-            Spacer(modifier = Modifier.width(4.dp))
-            Text(stringResource(R.string.download), fontWeight = FontWeight.Medium)
-        }
-        Spacer(modifier = Modifier.width(8.dp))
-        Button(onClick = onPlay) {
-            Icon(Icons.Filled.PlayArrow, contentDescription = null)
-            Spacer(modifier = Modifier.width(4.dp))
-            Text(stringResource(R.string.play), fontWeight = FontWeight.Medium)
+    // A narrow phone cannot hold the file name and two labelled buttons side
+    // by side, so the buttons turn into icons there.
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+        val compact = maxWidth < 380.dp
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = release.filename,
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = buildString {
+                        append(release.sourceLabel)
+                        release.quality?.let { append(" · ").append(it) }
+                        release.codec?.let { append(" · ").append(it) }
+                        release.language?.let { append(" · ").append(it) }
+                    },
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            if (compact) {
+                IconButton(onClick = onDownload) {
+                    Icon(
+                        Icons.Filled.Download,
+                        contentDescription = stringResource(R.string.download),
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                }
+                IconButton(onClick = onPlay) {
+                    Icon(
+                        Icons.Filled.PlayArrow,
+                        contentDescription = stringResource(R.string.play),
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                }
+            } else {
+                OutlinedButton(onClick = onDownload) {
+                    Icon(Icons.Filled.Download, contentDescription = stringResource(R.string.download))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(stringResource(R.string.download), fontWeight = FontWeight.Medium)
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Button(onClick = onPlay) {
+                    Icon(Icons.Filled.PlayArrow, contentDescription = null)
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(stringResource(R.string.play), fontWeight = FontWeight.Medium)
+                }
+            }
         }
     }
 }

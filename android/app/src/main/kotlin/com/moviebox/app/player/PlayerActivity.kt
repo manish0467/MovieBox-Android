@@ -1,7 +1,9 @@
 package com.moviebox.app.player
 
 import android.app.PictureInPictureParams
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.media.AudioManager
 import android.net.Uri
@@ -11,11 +13,13 @@ import android.view.View
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.core.content.ContextCompat
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.viewinterop.AndroidView
@@ -63,6 +67,11 @@ class PlayerActivity : ComponentActivity() {
     private var player: ExoPlayer? = null
     private var playerViewRef: PlayerView? = null
     private var mediaManager: PlayerMediaManager? = null
+
+    /** The media notification needs this permission on Android 13 and newer.
+     *  Playback works without it, so the answer is ignored. */
+    private val notificationPermission =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
     private val repository = MovieBoxRepository()
     private val viewModel: PlayerViewModel by viewModels()
 
@@ -152,6 +161,15 @@ class PlayerActivity : ComponentActivity() {
 
         mediaManager = PlayerMediaManager(this, exoPlayer, title, season, episode)
         mediaManager?.updateNotification()
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.POST_NOTIFICATIONS,
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
 
         if (!initialSubUrl.isNullOrBlank()) {
             val name = initialSubName ?: "Subtitles"
