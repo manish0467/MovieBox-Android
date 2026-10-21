@@ -2,6 +2,9 @@ package com.moviebox.app.ui
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.viewModelScope
 import com.moviebox.app.core.CatalogItem
 import com.moviebox.app.core.DownloadJob
@@ -10,6 +13,8 @@ import com.moviebox.app.core.FavoriteItem
 import com.moviebox.app.core.MovieBoxRepository
 import com.moviebox.app.core.ProviderInfo
 import com.moviebox.app.core.WatchHistoryItem
+import com.moviebox.app.ui.theme.MovieBoxThemeMode
+import com.moviebox.app.ui.theme.themeModeFromName
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -69,6 +74,10 @@ class MovieBoxViewModel(app: Application) : AndroidViewModel(app) {
     private val _state = MutableStateFlow(HomeUiState())
     val state: StateFlow<HomeUiState> = _state.asStateFlow()
 
+    /** The colour scheme the app uses, loaded from the engine. */
+    var themeMode: MovieBoxThemeMode by mutableStateOf(MovieBoxThemeMode.SYSTEM)
+        private set
+
     private var searchJob: Job? = null
     private var deckJob: Job? = null
 
@@ -76,6 +85,23 @@ class MovieBoxViewModel(app: Application) : AndroidViewModel(app) {
         loadProviders()
         loadHomeDeck("0")
         loadLibrary()
+        loadThemeMode()
+    }
+
+    /** Reads the stored colour scheme. */
+    private fun loadThemeMode() {
+        viewModelScope.launch {
+            runCatching { repository.getThemeMode() }
+                .onSuccess { mode -> themeMode = themeModeFromName(mode) }
+        }
+    }
+
+    /** Stores a new colour scheme and applies it immediately. */
+    fun selectThemeMode(mode: MovieBoxThemeMode) {
+        themeMode = mode
+        viewModelScope.launch {
+            runCatching { repository.setThemeMode(mode.name.lowercase()) }
+        }
     }
 
     private fun loadProviders() {

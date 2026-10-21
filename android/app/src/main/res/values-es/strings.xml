@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">MovieBox</string><string name="home">Inicio</string>
-    <string name="favorites">Favoritos</string><string name="history">Historial</string><string name="downloads">Descargas</string>
+    <string name="favorites">Guardados</string><string name="history">Historial</string><string name="downloads">Descargas</string>
     <string name="details">Detalles</string><string name="back">Atrás</string><string name="nothing_to_show">No hay nada que mostrar</string>
     <string name="add_favorite">Añadir a favoritos</string><string name="remove_favorite">Quitar de favoritos</string>
     <string name="seasons">Temporadas</string><string name="episodes">Episodios</string><string name="subtitles">Subtítulos</string>
@@ -12,4 +12,7 @@
     <string name="resume">Continuar</string><string name="movie">Película</string><string name="theme">Tema</string>
     <string name="theme_system">Sistema</string><string name="theme_light">Claro</string><string name="theme_dark">Oscuro</string>
     <string name="theme_oled">Negro OLED</string><string name="theme_blue">Azul</string><string name="theme_green">Verde</string><string name="theme_rose">Rosa</string>
+
+    <string name="appearance">Apariencia</string>
+    <string name="close">Cerrar</string>
 </resources>

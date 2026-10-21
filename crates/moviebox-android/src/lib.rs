@@ -260,6 +260,30 @@ pub extern "system" fn Java_com_moviebox_app_core_NativeBridge_nativeRecordWatch
 }
 
 #[unsafe(no_mangle)]
+pub extern "system" fn Java_com_moviebox_app_core_NativeBridge_nativeGetThemeMode<'local>(
+    mut env: JNIEnv<'local>,
+    _class: JClass<'local>,
+) -> jstring {
+    match bridge().get_theme_mode() {
+        Ok(value) => return_json(&mut env, api::ok_envelope(&value)),
+        Err(err) => error_json(&mut env, &err),
+    }
+}
+
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_com_moviebox_app_core_NativeBridge_nativeSetThemeMode<'local>(
+    mut env: JNIEnv<'local>,
+    _class: JClass<'local>,
+    mode: JString<'local>,
+) -> jstring {
+    let mode = read_string(&mut env, &mode);
+    match bridge().set_theme_mode(&mode) {
+        Ok(value) => return_json(&mut env, api::ok_envelope(&value)),
+        Err(err) => error_json(&mut env, &err),
+    }
+}
+
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_com_moviebox_app_core_NativeBridge_nativeDownloadStart<'local>(
     mut env: JNIEnv<'local>,
     _class: JClass<'local>,

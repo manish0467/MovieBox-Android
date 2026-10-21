@@ -13,7 +13,7 @@ path = "src/lib.rs"
 [dependencies]
 # The core lives in the MovieBox repository and is consumed as a git
 # dependency, so the app builds without a crates.io release of it.
-moviebox-tui = { git = "https://github.com/manish0467/MovieBox-Tui", tag = "v0.1.28", default-features = false }
+moviebox-tui = { git = "https://github.com/manish0467/MovieBox-Tui", tag = "v0.1.29", default-features = false }
 jni = "0.21"
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.150"

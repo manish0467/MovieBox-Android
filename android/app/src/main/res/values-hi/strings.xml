@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">मूवीबॉक्स</string><string name="home">होम</string>
-    <string name="favorites">पसंदीदा</string><string name="history">देखने का इतिहास</string><string name="downloads">डाउनलोड</string>
+    <string name="favorites">सहेजे</string><string name="history">इतिहास</string><string name="downloads">डाउनलोड</string>
     <string name="details">विवरण</string><string name="back">वापस</string><string name="nothing_to_show">दिखाने के लिए कुछ नहीं</string>
     <string name="add_favorite">पसंदीदा में जोड़ें</string><string name="remove_favorite">पसंदीदा से हटाएँ</string>
     <string name="seasons">सीज़न</string><string name="episodes">एपिसोड</string><string name="subtitles">सबटाइटल</string>
@@ -12,4 +12,7 @@
     <string name="resume">जारी रखें</string><string name="movie">फ़िल्म</string><string name="theme">थीम</string>
     <string name="theme_system">सिस्टम</string><string name="theme_light">हल्की</string><string name="theme_dark">गहरी</string>
     <string name="theme_oled">OLED काला</string><string name="theme_blue">नीला</string><string name="theme_green">हरा</string><string name="theme_rose">गुलाबी</string>
+
+    <string name="appearance">रूप</string>
+    <string name="close">बंद करें</string>
 </resources>

@@ -63,6 +63,12 @@ object NativeBridge {
     external fun nativeRecordWatchProgress(itemJson: String): String
 
     @JvmStatic
+    external fun nativeGetThemeMode(): String
+
+    @JvmStatic
+    external fun nativeSetThemeMode(mode: String): String
+
+    @JvmStatic
     external fun nativeDownloadStart(requestJson: String): String
 
     @JvmStatic

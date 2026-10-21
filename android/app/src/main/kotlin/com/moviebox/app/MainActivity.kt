@@ -27,6 +27,7 @@ import com.moviebox.app.ui.MovieBoxViewModel
 import com.moviebox.app.ui.screens.DetailsScreen
 import com.moviebox.app.ui.screens.HomeScreen
 import com.moviebox.app.ui.theme.MovieBoxTheme
+import com.moviebox.app.ui.theme.MovieBoxThemeMode
 import kotlinx.coroutines.launch
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
@@ -41,15 +42,19 @@ class MainActivity : ComponentActivity() {
 
     private val homeViewModel: MovieBoxViewModel by viewModels()
     private val detailsViewModel: DetailsViewModel by viewModels()
+    private val repository = MovieBoxRepository()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         handleIntent(intent)
         setContent {
-            MovieBoxTheme {
+            val themeMode = homeViewModel.themeMode
+            MovieBoxTheme(mode = themeMode) {
                 MovieBoxApp(
                     homeViewModel = homeViewModel,
                     detailsViewModel = detailsViewModel,
+                    themeMode = themeMode,
+                    onThemeSelected = homeViewModel::selectThemeMode,
                     onPlay = ::launchPlayer,
                     onOpenDownload = ::openDownloadedMedia,
                     onDownloadRelease = ::downloadRelease,
@@ -174,6 +179,8 @@ class MainActivity : ComponentActivity() {
 private fun MovieBoxApp(
     homeViewModel: MovieBoxViewModel,
     detailsViewModel: DetailsViewModel,
+    themeMode: MovieBoxThemeMode,
+    onThemeSelected: (MovieBoxThemeMode) -> Unit,
     onPlay: (
         source: PlaybackSource,
         title: String,
@@ -219,6 +226,8 @@ private fun MovieBoxApp(
                     }
                     navController.navigate("details/${historyItem.provider}/${historyItem.subjectId}")
                 },
+                themeMode = themeMode,
+                onThemeSelected = homeViewModel::selectThemeMode,
                 onPauseDownload = homeViewModel::pauseDownload,
                 onResumeDownload = homeViewModel::resumeDownload,
                 onRemoveDownload = homeViewModel::removeDownload,

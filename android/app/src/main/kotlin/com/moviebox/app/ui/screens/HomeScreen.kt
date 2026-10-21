@@ -2,6 +2,7 @@ package com.moviebox.app.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -34,16 +35,19 @@ import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -56,9 +60,13 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -79,6 +87,7 @@ import com.moviebox.app.core.WatchHistoryItem
 import com.moviebox.app.ui.DEFAULT_HOME_DECK_TABS
 import com.moviebox.app.ui.HomeUiState
 import com.moviebox.app.ui.MainTab
+import com.moviebox.app.ui.theme.MovieBoxThemeMode
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 
@@ -99,16 +108,38 @@ fun HomeScreen(
     onRemoveDownload: (String) -> Unit = {},
     onOpenDownload: (DownloadJob) -> Unit = {},
     onRefreshDownloads: () -> Unit = {},
+    themeMode: MovieBoxThemeMode = MovieBoxThemeMode.SYSTEM,
+    onThemeSelected: (MovieBoxThemeMode) -> Unit = {},
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
+    var showAppearance by remember { mutableStateOf(false) }
 
     LaunchedEffect(state.error) {
         state.error?.let { snackbarHostState.showSnackbar(it) }
     }
 
+    if (showAppearance) {
+        AppearanceDialog(
+            current = themeMode,
+            onSelect = {
+                onThemeSelected(it)
+                showAppearance = false
+            },
+            onDismiss = { showAppearance = false },
+        )
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
+                actions = {
+                    IconButton(onClick = { showAppearance = true }) {
+                        Icon(
+                            Icons.Filled.Settings,
+                            contentDescription = stringResource(R.string.appearance),
+                        )
+                    }
+                },
                 title = {
                     Text(
                         text = when (state.selectedTab) {
@@ -128,25 +159,53 @@ fun HomeScreen(
                     selected = state.selectedTab == MainTab.HOME,
                     onClick = { onSelectMainTab(MainTab.HOME) },
                     icon = { Icon(Icons.Filled.Home, contentDescription = stringResource(R.string.home)) },
-                    label = { Text(stringResource(R.string.home)) },
+                    label = {
+                        Text(
+                            stringResource(R.string.home),
+                            style = MaterialTheme.typography.labelSmall,
+                            maxLines = 1,
+                            softWrap = false,
+                        )
+                    },
                 )
                 NavigationBarItem(
                     selected = state.selectedTab == MainTab.FAVORITES,
                     onClick = { onSelectMainTab(MainTab.FAVORITES) },
                     icon = { Icon(Icons.Filled.Favorite, contentDescription = stringResource(R.string.favorites)) },
-                    label = { Text(stringResource(R.string.favorites)) },
+                    label = {
+                        Text(
+                            stringResource(R.string.favorites),
+                            style = MaterialTheme.typography.labelSmall,
+                            maxLines = 1,
+                            softWrap = false,
+                        )
+                    },
                 )
                 NavigationBarItem(
                     selected = state.selectedTab == MainTab.HISTORY,
                     onClick = { onSelectMainTab(MainTab.HISTORY) },
                     icon = { Icon(Icons.Filled.History, contentDescription = stringResource(R.string.history)) },
-                    label = { Text(stringResource(R.string.history)) },
+                    label = {
+                        Text(
+                            stringResource(R.string.history),
+                            style = MaterialTheme.typography.labelSmall,
+                            maxLines = 1,
+                            softWrap = false,
+                        )
+                    },
                 )
                 NavigationBarItem(
                     selected = state.selectedTab == MainTab.DOWNLOADS,
                     onClick = { onSelectMainTab(MainTab.DOWNLOADS) },
                     icon = { Icon(Icons.Filled.Download, contentDescription = stringResource(R.string.downloads)) },
-                    label = { Text(stringResource(R.string.downloads)) },
+                    label = {
+                        Text(
+                            stringResource(R.string.downloads),
+                            style = MaterialTheme.typography.labelSmall,
+                            maxLines = 1,
+                            softWrap = false,
+                        )
+                    },
                 )
             }
         },
@@ -1010,4 +1069,52 @@ private fun DownloadJobCard(
             }
         }
     }
+}
+
+/** Lets the user pick the colour scheme. */
+@Composable
+private fun AppearanceDialog(
+    current: MovieBoxThemeMode,
+    onSelect: (MovieBoxThemeMode) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val options = listOf(
+        MovieBoxThemeMode.SYSTEM to R.string.theme_system,
+        MovieBoxThemeMode.LIGHT to R.string.theme_light,
+        MovieBoxThemeMode.DARK to R.string.theme_dark,
+        MovieBoxThemeMode.OLED to R.string.theme_oled,
+        MovieBoxThemeMode.DARK_BLUE to R.string.theme_blue,
+        MovieBoxThemeMode.DARK_GREEN to R.string.theme_green,
+        MovieBoxThemeMode.DARK_ROSE to R.string.theme_rose,
+    )
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.appearance)) },
+        text = {
+            Column {
+                options.forEach { (mode, label) ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .selectable(
+                                selected = current == mode,
+                                onClick = { onSelect(mode) },
+                            )
+                            .padding(vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        RadioButton(
+                            selected = current == mode,
+                            onClick = { onSelect(mode) },
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        Text(stringResource(label))
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.close)) }
+        },
+    )
 }

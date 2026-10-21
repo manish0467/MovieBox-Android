@@ -274,6 +274,27 @@ class MovieBoxRepository {
     }
 
     /* ------------------------------------------------------------------ *
+     * Appearance
+     * ------------------------------------------------------------------ */
+
+    /** The colour scheme the app should use: system, light, dark, oled, blue,
+     *  green or rose. */
+    suspend fun getThemeMode(): String = withContext(Dispatchers.IO) {
+        decodeData(
+            NativeBridge.nativeGetThemeMode(),
+            ThemeModePayload.serializer(),
+        ).mode
+    }
+
+    /** Stores the colour scheme the app should use. */
+    suspend fun setThemeMode(mode: String): String = withContext(Dispatchers.IO) {
+        decodeData(
+            NativeBridge.nativeSetThemeMode(mode),
+            ThemeModePayload.serializer(),
+        ).mode
+    }
+
+    /* ------------------------------------------------------------------ *
      * Downloads engine facade
      * ------------------------------------------------------------------ */
 

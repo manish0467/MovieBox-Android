@@ -67,6 +67,19 @@ private fun darkScheme(primaryColor: Color, containerColor: Color) = darkColorSc
 )
 
 /** Existing no-argument and darkTheme call sites remain source compatible. */
+/** Maps a stored name to a colour scheme. Unknown names fall back to the
+ *  system setting. */
+fun themeModeFromName(name: String): MovieBoxThemeMode =
+    when (name.trim().lowercase()) {
+        "light" -> MovieBoxThemeMode.LIGHT
+        "dark" -> MovieBoxThemeMode.DARK
+        "oled" -> MovieBoxThemeMode.OLED
+        "blue" -> MovieBoxThemeMode.DARK_BLUE
+        "green" -> MovieBoxThemeMode.DARK_GREEN
+        "rose" -> MovieBoxThemeMode.DARK_ROSE
+        else -> MovieBoxThemeMode.SYSTEM
+    }
+
 @Composable
 fun MovieBoxTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),

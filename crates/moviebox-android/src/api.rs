@@ -462,6 +462,24 @@ impl Bridge {
         Ok(json!({ "id": job.id }))
     }
 
+    /// The colour scheme the app should use.
+    pub fn get_theme_mode(&self) -> Result<Value, String> {
+        let config = moviebox_tui::config::load();
+        Ok(json!({ "mode": config.theme_mode }))
+    }
+
+    /// Stores the colour scheme the app should use.
+    pub fn set_theme_mode(&self, mode: &str) -> Result<Value, String> {
+        let trimmed = mode.trim();
+        if trimmed.is_empty() {
+            return Err("the theme mode cannot be empty".to_string());
+        }
+        let mut config = moviebox_tui::config::load();
+        config.theme_mode = trimmed.to_string();
+        moviebox_tui::config::save(&config);
+        Ok(json!({ "mode": config.theme_mode }))
+    }
+
     /// The state of every download job.
     pub fn list_downloads(&self) -> Result<Value, String> {
         let jobs: Vec<Value> = self

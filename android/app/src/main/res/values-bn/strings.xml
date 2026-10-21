@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">মুভিবক্স</string><string name="home">হোম</string>
-    <string name="favorites">পছন্দের</string><string name="history">দেখার ইতিহাস</string><string name="downloads">ডাউনলোড</string>
+    <string name="favorites">সংরক্ষিত</string><string name="history">ইতিহাস</string><string name="downloads">ডাউনলোড</string>
     <string name="details">বিস্তারিত</string><string name="back">ফিরে যান</string><string name="nothing_to_show">দেখানোর মতো কিছু নেই</string>
     <string name="add_favorite">পছন্দের তালিকায় যোগ করুন</string><string name="remove_favorite">পছন্দের তালিকা থেকে সরান</string>
     <string name="seasons">সিজন</string><string name="episodes">পর্ব</string><string name="subtitles">সাবটাইটেল</string>
@@ -12,4 +12,7 @@
     <string name="resume">চালিয়ে যান</string><string name="movie">সিনেমা</string><string name="theme">থিম</string>
     <string name="theme_system">সিস্টেম</string><string name="theme_light">হালকা</string><string name="theme_dark">গাঢ়</string>
     <string name="theme_oled">OLED কালো</string><string name="theme_blue">নীল</string><string name="theme_green">সবুজ</string><string name="theme_rose">গোলাপি</string>
+
+    <string name="appearance">চেহারা</string>
+    <string name="close">বন্ধ</string>
 </resources>

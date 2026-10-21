@@ -215,6 +215,10 @@ data class ToggleFavoritePayload(val favorite: Boolean = false)
 @Serializable
 data class HeadersPayload(val headers: List<List<String>> = emptyList())
 
+/** The colour scheme the app uses, and the one it stores. */
+@Serializable
+data class ThemeModePayload(val mode: String = "system")
+
 /* ------------------------------------------------------------------ *
  * Download DTOs and payloads
  * ------------------------------------------------------------------ */
