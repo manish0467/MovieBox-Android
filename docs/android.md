@@ -245,6 +245,23 @@ or copy the APK to the phone and open it (allow "unknown sources"). Both cover
 `arm64-v8a` (real devices) and `x86_64` (the emulator), need Android 7 (API 24)
 or newer, and need the INTERNET permission only.
 
+### The in-app update check
+
+The app is distributed by sideloading, so the settings dialog checks the
+release server for a newer build and offers to install it:
+
+1. The app asks `api.github.com` for the latest release of this repository.
+2. The number in the tag (`android-preview-<versionCode>`) is compared with
+   the version code of the installed app.
+3. The newer APK is downloaded into the cache and **only kept when it carries
+   the same signing certificate as the installed app** — a tampered download
+   cannot replace the app.
+4. The installer is opened with the file. Android asks the user to allow the
+   app to install packages the first time.
+
+The check needs the `REQUEST_INSTALL_PACKAGES` permission and a `FileProvider`
+for the downloaded file. The bridge is not involved: the check is plain Kotlin.
+
 ### Signing a release
 
 The signing key never enters the repository. `android/app/build.gradle.kts`
@@ -271,6 +288,22 @@ builds. With them:
 ```bash
 cd android && ./gradlew assembleRelease
 ```
+
+The CI does the same, so a release does not depend on one machine. The
+`.github/workflows/release.yml` workflow restores the key from a secret and
+publishes the APK under the tag `android-preview-<versionCode>` — the name
+the in-app update check looks for. It needs four repository secrets:
+
+| Secret | Content |
+| :--- | :--- |
+| `MOVIEBOX_KEYSTORE_BASE64` | `base64 -w 0 moviebox-release.jks` |
+| `MOVIEBOX_STORE_PASSWORD` | the store password |
+| `MOVIEBOX_KEY_ALIAS` | the key alias (`moviebox`) |
+| `MOVIEBOX_KEY_PASSWORD` | the key password |
+
+Run it with `gh workflow run release.yml --repo manish0467/MovieBox-Android`.
+The workflow also runs the format, lint and test gates, so a broken build
+never reaches a release.
 
 The signing certificate of the current preview key:
 

@@ -57,9 +57,9 @@ features that make it feel like a real player, in order of value:
   the environment, a signed `app-release.apk` is published and its
   certificate fingerprint is in `docs/android.md`. Still open: a CI job that
   signs from a secret, and the store metadata.
-- **An in-app update check** against the GitHub releases, mirroring the
-  terminal client's self-updater.
-- **A signing fingerprint in the README**, next to the `SHA256SUMS` file.
+- ~~An in-app update check~~ Shipped: the app checks the releases, downloads a
+  newer build, verifies its signing certificate and hands it to the installer.
+- ~~A signing fingerprint in the README~~ Shipped: it is in `docs/android.md`.
 
 ## Blocked or not planned
 
