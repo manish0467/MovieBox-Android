@@ -272,7 +272,23 @@ fun PlayerControlsOverlay(
                 PlayerDialogType.SPEED -> {
                     AlertDialog(
                         onDismissRequest = onDismissDialog,
-                        title = { Text("Playback Speed") },
+                        title = {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text("Playback Speed")
+                                if (uiState.playbackSpeed != 1.0f) {
+                                    TextButton(onClick = {
+                                        onSelectSpeed(1.0f)
+                                        onDismissDialog()
+                                    }) {
+                                        Text("Reset (1.0x)")
+                                    }
+                                }
+                            }
+                        },
                         text = {
                             LazyColumn {
                                 items(playbackSpeeds) { speed ->
