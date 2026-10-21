@@ -376,6 +376,7 @@ class PlayerActivity : ComponentActivity() {
                 val deltaMs = ((totalDx / screenWidth) * scrubWindowMs).toLong()
                 val targetMs = (startSeekPositionMs + deltaMs).coerceIn(0L, duration.coerceAtLeast(0L))
                 currentSeekTargetMs = targetMs
+                viewModel.setSeekScrubPosition(targetMs)
 
                 val absDeltaSec = abs(deltaMs) / 1000
                 val deltaSign = if (deltaMs >= 0) "+" else "-"
@@ -403,6 +404,7 @@ class PlayerActivity : ComponentActivity() {
         if (gesture == GestureType.SEEK) {
             currentSeekTargetMs?.let { player?.seekTo(it) }
             currentSeekTargetMs = null
+            viewModel.setSeekScrubPosition(null)
         }
         viewModel.hideGestureHudDelayed(800L)
     }

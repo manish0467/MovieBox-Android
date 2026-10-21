@@ -90,12 +90,22 @@ fun PlayerControlsOverlay(
                 ),
         )
 
-        // Gesture HUD (brightness / volume / scrub indicator)
+        // Gesture HUD (brightness / volume indicator) or Seek Preview Thumbnail
         if (!uiState.isInPipMode) {
-            PlayerGestureHud(
-                state = uiState.gestureHudState,
-                modifier = Modifier.align(Alignment.Center),
-            )
+            if (uiState.seekScrubPositionMs != null) {
+                SeekPreviewThumbnail(
+                    targetPositionMs = uiState.seekScrubPositionMs,
+                    durationMs = uiState.durationMs,
+                    deltaText = uiState.gestureHudState?.deltaText,
+                    coverUrl = uiState.coverUrl,
+                    modifier = Modifier.align(Alignment.Center),
+                )
+            } else {
+                PlayerGestureHud(
+                    state = uiState.gestureHudState,
+                    modifier = Modifier.align(Alignment.Center),
+                )
+            }
         }
 
         // Top bar controls (hidden in PiP mode or when controls are toggled off)
