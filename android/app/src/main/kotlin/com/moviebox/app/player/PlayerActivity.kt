@@ -402,10 +402,40 @@ class PlayerActivity : ComponentActivity() {
         )
     }
 
+    private fun buildPipParams(): PictureInPictureParams? {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return null
+        val builder = PictureInPictureParams.Builder()
+
+        val p = player
+        if (p != null) {
+            val videoSize = p.videoSize
+            if (videoSize.width > 0 && videoSize.height > 0) {
+                val ratio = videoSize.width.toFloat() / videoSize.height.toFloat()
+                // Rational aspect ratio must be between 0.418410 and 2.390000
+                if (ratio in 0.42f..2.38f) {
+                    builder.setAspectRatio(android.util.Rational(videoSize.width, videoSize.height))
+                }
+            }
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            builder.setAutoEnterEnabled(true)
+        }
+
+        return builder.build()
+    }
+
     private fun enterPipMode() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val params = PictureInPictureParams.Builder().build()
+            val params = buildPipParams() ?: PictureInPictureParams.Builder().build()
             enterPictureInPictureMode(params)
+        }
+    }
+
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        if (player?.isPlaying == true) {
+            enterPipMode()
         }
     }
 
@@ -415,7 +445,16 @@ class PlayerActivity : ComponentActivity() {
     ) {
         super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
         viewModel.setInPipMode(isInPictureInPictureMode)
-        playerViewRef?.useController = !isInPictureInPictureMode
+        playerViewRef?.apply {
+            useController = !isInPictureInPictureMode
+            if (!isInPictureInPictureMode) {
+                showController()
+                viewModel.setControlsVisible(true)
+            } else {
+                hideController()
+                viewModel.setControlsVisible(false)
+            }
+        }
     }
 
     private fun buildMediaItem(
