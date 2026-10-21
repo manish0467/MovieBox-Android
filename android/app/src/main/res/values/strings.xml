@@ -20,4 +20,14 @@
 
     <string name="appearance">Appearance</string>
     <string name="close">Close</string>
+
+    <string name="live_tv">Live TV</string>
+    <string name="tv_playlists">TV playlists</string>
+    <string name="tv_playlist_url">Playlist URL or file path</string>
+    <string name="tv_search_hint">Search channels</string>
+    <string name="tv_no_channels">No channels. Add a playlist to get started.</string>
+    <string name="refresh">Refresh</string>
+    <string name="add">Add</string>
+
+    <string name="remove">Remove</string>
 </resources>

@@ -15,4 +15,14 @@
 
     <string name="appearance">চেহারা</string>
     <string name="close">বন্ধ</string>
+
+    <string name="live_tv">লাইভ টিভি</string>
+    <string name="tv_playlists">টিভি প্লেলিস্ট</string>
+    <string name="tv_playlist_url">প্লেলিস্ট URL বা ফাইল পাথ</string>
+    <string name="tv_search_hint">চ্যানেল খুঁজুন</string>
+    <string name="tv_no_channels">কোনো চ্যানেল নেই। একটি প্লেলিস্ট যোগ করুন।</string>
+    <string name="refresh">রিফ্রেশ</string>
+    <string name="add">যোগ করুন</string>
+
+    <string name="remove">সরান</string>
 </resources>

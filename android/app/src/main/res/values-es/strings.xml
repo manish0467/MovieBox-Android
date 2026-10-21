@@ -15,4 +15,14 @@
 
     <string name="appearance">Apariencia</string>
     <string name="close">Cerrar</string>
+
+    <string name="live_tv">TV en vivo</string>
+    <string name="tv_playlists">Listas de TV</string>
+    <string name="tv_playlist_url">URL o ruta del archivo de la lista</string>
+    <string name="tv_search_hint">Buscar canales</string>
+    <string name="tv_no_channels">Sin canales. Añade una lista para empezar.</string>
+    <string name="refresh">Actualizar</string>
+    <string name="add">Añadir</string>
+
+    <string name="remove">Quitar</string>
 </resources>

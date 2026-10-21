@@ -15,6 +15,7 @@
 
 mod api;
 mod downloads;
+mod tv;
 
 use std::sync::OnceLock;
 
@@ -340,6 +341,74 @@ pub extern "system" fn Java_com_moviebox_app_core_NativeBridge_nativeDownloadDir
 ) -> jstring {
     match bridge().download_directory() {
         Ok(value) => return_json(&mut env, api::ok_envelope(&value)),
+        Err(err) => error_json(&mut env, &err),
+    }
+}
+
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_com_moviebox_app_core_NativeBridge_nativeTvPlaylists<'local>(
+    mut env: JNIEnv<'local>,
+    _class: JClass<'local>,
+) -> jstring {
+    let playlists = tv::playlists();
+    return_json(&mut env, api::ok_envelope(&playlists))
+}
+
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_com_moviebox_app_core_NativeBridge_nativeTvAddPlaylist<'local>(
+    mut env: JNIEnv<'local>,
+    _class: JClass<'local>,
+    source: JString<'local>,
+) -> jstring {
+    let source = read_string(&mut env, &source);
+    match tv::add_playlist(&source) {
+        Ok(playlists) => return_json(&mut env, api::ok_envelope(&playlists)),
+        Err(err) => error_json(&mut env, &err),
+    }
+}
+
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_com_moviebox_app_core_NativeBridge_nativeTvRemovePlaylist<'local>(
+    mut env: JNIEnv<'local>,
+    _class: JClass<'local>,
+    source: JString<'local>,
+) -> jstring {
+    let source = read_string(&mut env, &source);
+    match tv::remove_playlist(&source) {
+        Ok(playlists) => return_json(&mut env, api::ok_envelope(&playlists)),
+        Err(err) => error_json(&mut env, &err),
+    }
+}
+
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_com_moviebox_app_core_NativeBridge_nativeTvChannels<'local>(
+    mut env: JNIEnv<'local>,
+    _class: JClass<'local>,
+    request_json: JString<'local>,
+) -> jstring {
+    let request_json = read_string(&mut env, &request_json);
+    let request: tv::TvChannelsRequest = match serde_json::from_str(&request_json) {
+        Ok(request) => request,
+        Err(err) => {
+            error_json(&mut env, &format!("invalid channel request: {err}"));
+            return std::ptr::null_mut();
+        }
+    };
+    match bridge().tv_channels(&request) {
+        Ok(channels) => return_json(&mut env, api::ok_envelope(&channels)),
+        Err(err) => error_json(&mut env, &err),
+    }
+}
+
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_com_moviebox_app_core_NativeBridge_nativeTvResolve<'local>(
+    mut env: JNIEnv<'local>,
+    _class: JClass<'local>,
+    stream_url: JString<'local>,
+) -> jstring {
+    let stream_url = read_string(&mut env, &stream_url);
+    match tv::resolve(&stream_url) {
+        Ok(source) => return_json(&mut env, api::ok_envelope(&source)),
         Err(err) => error_json(&mut env, &err),
     }
 }

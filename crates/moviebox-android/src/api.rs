@@ -91,6 +91,7 @@ pub struct Bridge {
     /// needs the subject id, which the Kotlin side does not send back, so the
     /// bridge remembers it from the listing call.
     subjects: std::sync::Mutex<std::collections::HashMap<String, String>>,
+
     /// The running download jobs.
     downloads: DownloadManager,
 }
@@ -117,6 +118,14 @@ impl Bridge {
     }
 
     /// Remembers which subject every listed resource id belongs to.
+    /// The channels of the configured Live TV playlists.
+    pub fn tv_channels(
+        &self,
+        request: &crate::tv::TvChannelsRequest,
+    ) -> Result<crate::tv::TvChannelsPayload, String> {
+        self.runtime.block_on(crate::tv::channels(request))
+    }
+
     fn remember_subject(&self, subject_id: &str, releases: &[Release]) {
         let mut guard = match self.subjects.lock() {
             Ok(guard) => guard,
