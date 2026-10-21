@@ -6,3 +6,9 @@ members = ["crates/moviebox-android"]
 version = "0.1.0"
 edition = "2024"
 license = "GPL-3.0-or-later"
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
