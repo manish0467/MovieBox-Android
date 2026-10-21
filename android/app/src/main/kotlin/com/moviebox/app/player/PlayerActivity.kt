@@ -210,6 +210,7 @@ class PlayerActivity : ComponentActivity() {
                                     viewModel.setControlsVisible(visibility == View.VISIBLE)
                                 })
                                 playerViewRef = this
+                                applySubtitleStyle()
                             }
                         },
                     )
@@ -248,6 +249,12 @@ class PlayerActivity : ComponentActivity() {
                         },
                         onSeekToChapter = { chapter ->
                             exoPlayer.seekTo(chapter.startTimeMs)
+                        },
+                        onUpdateSubtitleStyle = { sizeSp, textColor, backgroundColor ->
+                            PlayerSessionPreferences.subtitleTextSizeSp = sizeSp
+                            PlayerSessionPreferences.subtitleTextColor = textColor
+                            PlayerSessionPreferences.subtitleBackgroundColor = backgroundColor
+                            applySubtitleStyle()
                         },
                         onDragStart = { gesture, startX, startY ->
                             handleGestureStart(gesture)
@@ -468,6 +475,23 @@ class PlayerActivity : ComponentActivity() {
                     .build()
             }
         }
+    }
+
+    private fun applySubtitleStyle() {
+        val subtitleView = playerViewRef?.subtitleView ?: return
+        val style = androidx.media3.ui.CaptionStyleCompat(
+            PlayerSessionPreferences.subtitleTextColor,
+            PlayerSessionPreferences.subtitleBackgroundColor,
+            android.graphics.Color.TRANSPARENT,
+            PlayerSessionPreferences.subtitleEdgeType,
+            PlayerSessionPreferences.subtitleEdgeColor,
+            null,
+        )
+        subtitleView.setStyle(style)
+        subtitleView.setFixedTextSize(
+            android.util.TypedValue.COMPLEX_UNIT_SP,
+            PlayerSessionPreferences.subtitleTextSizeSp,
+        )
     }
 
     private fun disableSubtitles() {

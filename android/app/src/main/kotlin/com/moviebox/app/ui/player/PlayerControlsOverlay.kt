@@ -34,6 +34,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -57,6 +59,7 @@ fun PlayerControlsOverlay(
     onSelectSubtitle: (SubtitleOption?) -> Unit,
     onSelectSpeed: (Float) -> Unit,
     onSeekToChapter: (PlayerChapter) -> Unit,
+    onUpdateSubtitleStyle: (textSizeSp: Float, textColor: Int, backgroundColor: Int) -> Unit,
     onDragStart: (GestureType, startX: Float, startY: Float) -> Unit,
     onDragStep: (GestureType, deltaX: Float, deltaY: Float, totalX: Float, totalY: Float) -> Unit,
     onDragEnd: (GestureType) -> Unit,
@@ -210,7 +213,18 @@ fun PlayerControlsOverlay(
                 PlayerDialogType.SUBTITLES -> {
                     AlertDialog(
                         onDismissRequest = onDismissDialog,
-                        title = { Text("Subtitles") },
+                        title = {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text("Subtitles")
+                                TextButton(onClick = { onOpenDialog(PlayerDialogType.SUBTITLE_STYLE) }) {
+                                    Text("Style")
+                                }
+                            }
+                        },
                         text = {
                             LazyColumn {
                                 item {
@@ -346,7 +360,107 @@ fun PlayerControlsOverlay(
                     }
                 }
 
-                PlayerDialogType.NONE, PlayerDialogType.SUBTITLE_STYLE -> Unit
+                PlayerDialogType.SUBTITLE_STYLE -> {
+                    val fontSizes = listOf(
+                        "Small (14sp)" to 14f,
+                        "Medium (18sp)" to 18f,
+                        "Large (24sp)" to 24f,
+                        "Extra Large (30sp)" to 30f,
+                    )
+                    val fontColors = listOf(
+                        "White" to android.graphics.Color.WHITE,
+                        "Yellow" to android.graphics.Color.YELLOW,
+                        "Cyan" to android.graphics.Color.CYAN,
+                        "Green" to android.graphics.Color.GREEN,
+                    )
+                    val bgColors = listOf(
+                        "None (Transparent)" to android.graphics.Color.TRANSPARENT,
+                        "Semi-transparent Black" to android.graphics.Color.argb(128, 0, 0, 0),
+                        "Solid Black" to android.graphics.Color.BLACK,
+                    )
+
+                    var currentSize by androidx.compose.runtime.remember {
+                        androidx.compose.runtime.mutableStateOf(com.moviebox.app.player.PlayerSessionPreferences.subtitleTextSizeSp)
+                    }
+                    var currentColor by androidx.compose.runtime.remember {
+                        androidx.compose.runtime.mutableStateOf(com.moviebox.app.player.PlayerSessionPreferences.subtitleTextColor)
+                    }
+                    var currentBg by androidx.compose.runtime.remember {
+                        androidx.compose.runtime.mutableStateOf(com.moviebox.app.player.PlayerSessionPreferences.subtitleBackgroundColor)
+                    }
+
+                    AlertDialog(
+                        onDismissRequest = onDismissDialog,
+                        title = { Text("Subtitle Styling") },
+                        text = {
+                            LazyColumn {
+                                item {
+                                    Text(
+                                        text = "Text Size",
+                                        style = MaterialTheme.typography.titleSmall,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
+                                    )
+                                }
+                                items(fontSizes) { (label, size) ->
+                                    DialogOptionRow(
+                                        title = label,
+                                        selected = currentSize == size,
+                                        onClick = {
+                                            currentSize = size
+                                            onUpdateSubtitleStyle(currentSize, currentColor, currentBg)
+                                        },
+                                    )
+                                }
+
+                                item {
+                                    Text(
+                                        text = "Text Colour",
+                                        style = MaterialTheme.typography.titleSmall,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.padding(top = 16.dp, bottom = 4.dp),
+                                    )
+                                }
+                                items(fontColors) { (label, colorInt) ->
+                                    DialogOptionRow(
+                                        title = label,
+                                        selected = currentColor == colorInt,
+                                        onClick = {
+                                            currentColor = colorInt
+                                            onUpdateSubtitleStyle(currentSize, currentColor, currentBg)
+                                        },
+                                    )
+                                }
+
+                                item {
+                                    Text(
+                                        text = "Background Colour",
+                                        style = MaterialTheme.typography.titleSmall,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.padding(top = 16.dp, bottom = 4.dp),
+                                    )
+                                }
+                                items(bgColors) { (label, bgInt) ->
+                                    DialogOptionRow(
+                                        title = label,
+                                        selected = currentBg == bgInt,
+                                        onClick = {
+                                            currentBg = bgInt
+                                            onUpdateSubtitleStyle(currentSize, currentColor, currentBg)
+                                        },
+                                    )
+                                }
+                            }
+                        },
+                        confirmButton = {
+                            TextButton(onClick = onDismissDialog) {
+                                Text("Done")
+                            }
+                        },
+                    )
+                }
+
+                PlayerDialogType.NONE -> Unit
             }
         }
     }
