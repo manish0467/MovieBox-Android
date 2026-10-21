@@ -1,0 +1,124 @@
+name: Release
+
+# The signed APK is published under the tag `android-preview-<versionCode>`,
+# so the in-app update check finds it: it compares the number in the tag with
+# the version code of the installed app.
+on:
+  workflow_dispatch:
+  push:
+    tags: ['android-preview-*']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Signed APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      ANDROID_HOME: /usr/local/lib/android/sdk
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      # setup-android cannot install the SDK on the current runners, so the
+      # command line tools are installed explicitly first.
+      - name: Install the Android command line tools
+        run: |
+          set -euo pipefail
+          mkdir -p "$ANDROID_HOME/cmdline-tools"
+          curl -fsSL -o /tmp/cmdline-tools.zip \
+            "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip"
+          unzip -q /tmp/cmdline-tools.zip -d /tmp/cmdline-tools
+          mv /tmp/cmdline-tools/cmdline-tools "$ANDROID_HOME/cmdline-tools/latest"
+          # `yes` gets a broken pipe once sdkmanager is done, so pipefail is off.
+          set +o pipefail
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null 2>&1 || true
+          set -o pipefail
+      - name: Install the SDK packages
+        run: |
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
+            "platform-tools" \
+            "platforms;android-35" \
+            "build-tools;35.0.0" \
+            "ndk;27.2.12479018"
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.90.0
+          targets: aarch64-linux-android, x86_64-linux-android
+      - uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: "android-release"
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-ndk
+      - name: Check the Rust bridge
+        run: cargo fmt --all --check && cargo clippy --workspace --all-targets --locked -- -D warnings
+      - name: Run the Rust tests
+        run: cargo test --workspace --locked
+      - name: Build the Rust library
+        run: |
+          cargo ndk -t arm64-v8a -o android/app/src/main/jniLibs build --release -p moviebox-android
+          cargo ndk -t x86_64  -o android/app/src/main/jniLibs build --release -p moviebox-android
+      # The key never enters the repository: it comes from a secret and is
+      # written to the gitignored `keystore.properties`.
+      - name: Restore the signing key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.MOVIEBOX_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.MOVIEBOX_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.MOVIEBOX_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.MOVIEBOX_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -z "${KEYSTORE_BASE64}" ]; then
+            echo "::warning::No signing key is configured, the APK stays unsigned."
+            exit 0
+          fi
+          mkdir -p "$RUNNER_TEMP/keystore"
+          echo "${KEYSTORE_BASE64}" | base64 -d > "$RUNNER_TEMP/keystore/moviebox-release.jks"
+          cat > android/keystore.properties <<EOF
+          storeFile=$RUNNER_TEMP/keystore/moviebox-release.jks
+          storePassword=$STORE_PASSWORD
+          keyAlias=$KEY_ALIAS
+          keyPassword=$KEY_PASSWORD
+          EOF
+      - name: Build the release APK
+        working-directory: android
+        run: ./gradlew assembleRelease
+      - name: Read the version code
+        id: version
+        run: |
+          code=$(grep -oE 'versionCode[[:space:]]*=[[:space:]]*[0-9]+' android/app/build.gradle.kts \
+            | head -1 | grep -oE '[0-9]+')
+          if [ -z "$code" ]; then
+            echo "::error::The version code could not be read from build.gradle.kts"
+            exit 1
+          fi
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          echo "The version code is $code"
+      - name: Verify the signature
+        run: |
+          set -euo pipefail
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs \
+            android/app/build/outputs/apk/release/app-release.apk
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          tag="android-preview-${{ steps.version.outputs.code }}"
+          apk=android/app/build/outputs/apk/release/app-release.apk
+          notes="MovieBox Android ${{ steps.version.outputs.code }} (arm64-v8a and x86_64)."
+          if gh release view "$tag" > /dev/null 2>&1; then
+            gh release upload "$tag" "$apk" --clobber
+          else
+            gh release create "$tag" "$apk" --title "MovieBox Android ${{ steps.version.outputs.code }}" --notes "$notes"
+          fi
+          gh release upload "$tag" android/app/build/outputs/apk/debug/app-debug.apk --clobber || true
