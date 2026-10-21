@@ -3,6 +3,8 @@ package com.moviebox.app.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -48,6 +50,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -88,6 +91,8 @@ import com.moviebox.app.core.WatchHistoryItem
 import com.moviebox.app.ui.DEFAULT_HOME_DECK_TABS
 import com.moviebox.app.ui.HomeUiState
 import com.moviebox.app.ui.MainTab
+import com.moviebox.app.ui.UpdateStatus
+import com.moviebox.app.ui.UpdateState
 import com.moviebox.app.ui.theme.MovieBoxThemeMode
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -112,6 +117,9 @@ fun HomeScreen(
     themeMode: MovieBoxThemeMode = MovieBoxThemeMode.SYSTEM,
     onThemeSelected: (MovieBoxThemeMode) -> Unit = {},
     onOpenLiveTv: () -> Unit = {},
+    updateState: UpdateState = UpdateState(),
+    onCheckForUpdates: () -> Unit = {},
+    onInstallUpdate: () -> Unit = {},
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     var showAppearance by remember { mutableStateOf(false) }
@@ -121,12 +129,15 @@ fun HomeScreen(
     }
 
     if (showAppearance) {
-        AppearanceDialog(
+        SettingsDialog(
             current = themeMode,
             onSelect = {
                 onThemeSelected(it)
                 showAppearance = false
             },
+            updateState = updateState,
+            onCheckForUpdates = onCheckForUpdates,
+            onInstallUpdate = onInstallUpdate,
             onDismiss = { showAppearance = false },
         )
     }
@@ -1079,11 +1090,14 @@ private fun DownloadJobCard(
     }
 }
 
-/** Lets the user pick the colour scheme. */
+/** The settings: the colour scheme and the update check. */
 @Composable
-private fun AppearanceDialog(
+private fun SettingsDialog(
     current: MovieBoxThemeMode,
     onSelect: (MovieBoxThemeMode) -> Unit,
+    updateState: UpdateState,
+    onCheckForUpdates: () -> Unit,
+    onInstallUpdate: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     val options = listOf(
@@ -1095,11 +1109,17 @@ private fun AppearanceDialog(
         MovieBoxThemeMode.DARK_GREEN to R.string.theme_green,
         MovieBoxThemeMode.DARK_ROSE to R.string.theme_rose,
     )
+    val busy = updateState.status == UpdateStatus.CHECKING ||
+        updateState.status == UpdateStatus.DOWNLOADING
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.appearance)) },
+        title = { Text(stringResource(R.string.settings)) },
         text = {
-            Column {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                Text(
+                    text = stringResource(R.string.theme),
+                    style = MaterialTheme.typography.labelLarge,
+                )
                 options.forEach { (mode, label) ->
                     Row(
                         modifier = Modifier
@@ -1118,6 +1138,48 @@ private fun AppearanceDialog(
                         Spacer(Modifier.width(12.dp))
                         Text(stringResource(label))
                     }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+                HorizontalDivider()
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Text(
+                    text = stringResource(R.string.updates),
+                    style = MaterialTheme.typography.labelLarge,
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = when (updateState.status) {
+                        UpdateStatus.IDLE -> stringResource(R.string.update_hint)
+                        UpdateStatus.CHECKING -> stringResource(R.string.update_checking)
+                        UpdateStatus.UP_TO_DATE -> stringResource(R.string.update_up_to_date)
+                        UpdateStatus.DOWNLOADING -> stringResource(R.string.update_downloading)
+                        UpdateStatus.READY ->
+                            stringResource(R.string.update_ready, updateState.versionCode)
+                        UpdateStatus.CHECK_FAILED -> stringResource(R.string.update_check_failed)
+                        UpdateStatus.DOWNLOAD_FAILED ->
+                            stringResource(R.string.update_download_failed)
+                        UpdateStatus.INSTALL_BLOCKED ->
+                            stringResource(R.string.update_install_blocked)
+                        UpdateStatus.INSTALL_FAILED ->
+                            stringResource(R.string.update_install_failed)
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                if (updateState.status == UpdateStatus.READY) {
+                    Button(onClick = onInstallUpdate) {
+                        Text(stringResource(R.string.install))
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+                OutlinedButton(
+                    onClick = onCheckForUpdates,
+                    enabled = !busy,
+                ) {
+                    Text(stringResource(R.string.check_for_updates))
                 }
             }
         },

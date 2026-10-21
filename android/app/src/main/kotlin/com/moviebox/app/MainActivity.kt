@@ -207,6 +207,7 @@ private fun MovieBoxApp(
     val homeState by homeViewModel.state.collectAsStateWithLifecycle()
     val detailsState by detailsViewModel.state.collectAsStateWithLifecycle()
     val liveTvState by liveTvViewModel.state.collectAsStateWithLifecycle()
+    val updateState by homeViewModel.updateState.collectAsStateWithLifecycle()
 
     NavHost(navController = navController, startDestination = "home") {
         composable("home") {
@@ -235,6 +236,9 @@ private fun MovieBoxApp(
                 themeMode = themeMode,
                 onThemeSelected = homeViewModel::selectThemeMode,
                 onOpenLiveTv = { navController.navigate("live") },
+                updateState = updateState,
+                onCheckForUpdates = homeViewModel::checkForUpdates,
+                onInstallUpdate = homeViewModel::installUpdate,
                 onPauseDownload = homeViewModel::pauseDownload,
                 onResumeDownload = homeViewModel::resumeDownload,
                 onRemoveDownload = homeViewModel::removeDownload,

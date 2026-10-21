@@ -25,4 +25,18 @@
     <string name="add">Añadir</string>
 
     <string name="remove">Quitar</string>
+
+    <string name="settings">Ajustes</string>
+    <string name="updates">Actualizaciones</string>
+    <string name="check_for_updates">Buscar actualizaciones</string>
+    <string name="install">Instalar</string>
+    <string name="update_hint">Comprueba si se ha publicado una versión más reciente.</string>
+    <string name="update_checking">Comprobando…</string>
+    <string name="update_up_to_date">Ya tienes la última versión.</string>
+    <string name="update_downloading">Descargando la actualización…</string>
+    <string name="update_ready">La versión %1$d está lista para instalar.</string>
+    <string name="update_check_failed">No se pudo contactar con el servidor de versiones.</string>
+    <string name="update_download_failed">No se pudo descargar o verificar la actualización.</string>
+    <string name="update_install_blocked">Permite que la app instale actualizaciones y vuelve a intentarlo.</string>
+    <string name="update_install_failed">No se pudo abrir el instalador.</string>
 </resources>

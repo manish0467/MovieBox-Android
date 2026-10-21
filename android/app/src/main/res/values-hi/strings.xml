@@ -25,4 +25,18 @@
     <string name="add">जोड़ें</string>
 
     <string name="remove">हटाएँ</string>
+
+    <string name="settings">सेटिंग्स</string>
+    <string name="updates">अपडेट</string>
+    <string name="check_for_updates">अपडेट देखें</string>
+    <string name="install">इंस्टॉल</string>
+    <string name="update_hint">जाँचें कि नया बिल्ड प्रकाशित हुआ है या नहीं।</string>
+    <string name="update_checking">जाँच हो रही है…</string>
+    <string name="update_up_to_date">आप नवीनतम संस्करण पर हैं।</string>
+    <string name="update_downloading">अपडेट डाउनलोड हो रहा है…</string>
+    <string name="update_ready">संस्करण %1$d इंस्टॉल करने के लिए तैयार है।</string>
+    <string name="update_check_failed">रिलीज़ सर्वर तक नहीं पहुँच सके।</string>
+    <string name="update_download_failed">अपडेट डाउनलोड या सत्यापित नहीं हो सका।</string>
+    <string name="update_install_blocked">ऐप को अपडेट इंस्टॉल करने की अनुमति दें, फिर कोशिश करें।</string>
+    <string name="update_install_failed">इंस्टॉलर नहीं खुल सका।</string>
 </resources>

@@ -30,4 +30,18 @@
     <string name="add">Add</string>
 
     <string name="remove">Remove</string>
+
+    <string name="settings">Settings</string>
+    <string name="updates">Updates</string>
+    <string name="check_for_updates">Check for updates</string>
+    <string name="install">Install</string>
+    <string name="update_hint">Check whether a newer build has been published.</string>
+    <string name="update_checking">Checking…</string>
+    <string name="update_up_to_date">You are on the newest version.</string>
+    <string name="update_downloading">Downloading the update…</string>
+    <string name="update_ready">Version %1$d is ready to install.</string>
+    <string name="update_check_failed">The release server could not be reached.</string>
+    <string name="update_download_failed">The update could not be downloaded or verified.</string>
+    <string name="update_install_blocked">Allow the app to install updates, then try again.</string>
+    <string name="update_install_failed">The installer could not be opened.</string>
 </resources>

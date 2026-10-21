@@ -12,6 +12,7 @@ import com.moviebox.app.core.DownloadRequest
 import com.moviebox.app.core.FavoriteItem
 import com.moviebox.app.core.MovieBoxRepository
 import com.moviebox.app.core.ProviderInfo
+import com.moviebox.app.core.UpdateChecker
 import com.moviebox.app.core.WatchHistoryItem
 import com.moviebox.app.ui.theme.MovieBoxThemeMode
 import com.moviebox.app.ui.theme.themeModeFromName
@@ -39,6 +40,25 @@ val DEFAULT_HOME_DECK_TABS = listOf(
     HomeDeckTab("0", "Featured"),
     HomeDeckTab("1", "Movies"),
     HomeDeckTab("2", "Series"),
+)
+
+/** What the update check found. */
+enum class UpdateStatus {
+    IDLE,
+    CHECKING,
+    UP_TO_DATE,
+    DOWNLOADING,
+    READY,
+    CHECK_FAILED,
+    DOWNLOAD_FAILED,
+    INSTALL_BLOCKED,
+    INSTALL_FAILED,
+}
+
+/** The state of the update check. */
+data class UpdateState(
+    val status: UpdateStatus = UpdateStatus.IDLE,
+    val versionCode: Int = 0,
 )
 
 data class HomeUiState(
@@ -93,6 +113,71 @@ class MovieBoxViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             runCatching { repository.getThemeMode() }
                 .onSuccess { mode -> themeMode = themeModeFromName(mode) }
+        }
+    }
+
+    private val _updateState = MutableStateFlow(UpdateState())
+    val updateState: StateFlow<UpdateState> = _updateState.asStateFlow()
+
+    private var downloadedUpdate: java.io.File? = null
+
+    /**
+     * Looks for a newer release and downloads it.
+     *
+     * The download is only kept when it carries the certificate of the
+     * installed app.
+     */
+    fun checkForUpdates() {
+        val status = _updateState.value.status
+        if (status == UpdateStatus.CHECKING || status == UpdateStatus.DOWNLOADING) return
+        val context = getApplication<Application>()
+        viewModelScope.launch {
+            _updateState.update { it.copy(status = UpdateStatus.CHECKING) }
+            val installed = UpdateChecker.installedVersionCode(context)
+            val release = UpdateChecker.latestRelease()
+            when {
+                release == null ->
+                    _updateState.update { it.copy(status = UpdateStatus.CHECK_FAILED) }
+
+                release.versionCode <= installed ->
+                    _updateState.update { it.copy(status = UpdateStatus.UP_TO_DATE) }
+
+                else -> {
+                    _updateState.update {
+                        it.copy(
+                            status = UpdateStatus.DOWNLOADING,
+                            versionCode = release.versionCode,
+                        )
+                    }
+                    val apk = UpdateChecker.download(context, release)
+                    if (apk == null) {
+                        _updateState.update { it.copy(status = UpdateStatus.DOWNLOAD_FAILED) }
+                    } else {
+                        downloadedUpdate = apk
+                        _updateState.update { it.copy(status = UpdateStatus.READY) }
+                    }
+                }
+            }
+        }
+    }
+
+    /** Hands the downloaded update to the installer. */
+    fun installUpdate() {
+        val context = getApplication<Application>()
+        val apk = downloadedUpdate ?: return
+        if (!UpdateChecker.canInstallPackages(context)) {
+            UpdateChecker.requestInstallPermission(context)
+            _updateState.update { it.copy(status = UpdateStatus.INSTALL_BLOCKED) }
+            return
+        }
+        _updateState.update {
+            it.copy(
+                status = if (UpdateChecker.install(context, apk)) {
+                    UpdateStatus.READY
+                } else {
+                    UpdateStatus.INSTALL_FAILED
+                },
+            )
         }
     }
 

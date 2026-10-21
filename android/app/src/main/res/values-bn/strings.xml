@@ -25,4 +25,18 @@
     <string name="add">যোগ করুন</string>
 
     <string name="remove">সরান</string>
+
+    <string name="settings">সেটিংস</string>
+    <string name="updates">আপডেট</string>
+    <string name="check_for_updates">আপডেট পরীক্ষা করুন</string>
+    <string name="install">ইনস্টল</string>
+    <string name="update_hint">নতুন সংস্করণ প্রকাশিত হয়েছে কি না দেখুন।</string>
+    <string name="update_checking">পরীক্ষা করা হচ্ছে…</string>
+    <string name="update_up_to_date">আপনি সর্বশেষ সংস্করণ ব্যবহার করছেন।</string>
+    <string name="update_downloading">আপডেট ডাউনলোড হচ্ছে…</string>
+    <string name="update_ready">সংস্করণ %1$d ইনস্টল করার জন্য প্রস্তুত।</string>
+    <string name="update_check_failed">রিলিজ সার্ভারে পৌঁছানো যায়নি।</string>
+    <string name="update_download_failed">আপডেট ডাউনলোড বা যাচাই করা যায়নি।</string>
+    <string name="update_install_blocked">আপডেট ইনস্টল করার অনুমতি দিন, তারপর আবার চেষ্টা করুন।</string>
+    <string name="update_install_failed">ইনস্টলার খোলা যায়নি।</string>
 </resources>
