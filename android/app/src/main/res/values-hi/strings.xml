@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">मूवीबॉक्स</string><string name="home">होम</string>
+    <string name="favorites">पसंदीदा</string><string name="history">देखने का इतिहास</string><string name="downloads">डाउनलोड</string>
+    <string name="details">विवरण</string><string name="back">वापस</string><string name="nothing_to_show">दिखाने के लिए कुछ नहीं</string>
+    <string name="add_favorite">पसंदीदा में जोड़ें</string><string name="remove_favorite">पसंदीदा से हटाएँ</string>
+    <string name="seasons">सीज़न</string><string name="episodes">एपिसोड</string><string name="subtitles">सबटाइटल</string>
+    <string name="sources">स्रोत</string><string name="none">कोई नहीं</string><string name="download">डाउनलोड</string><string name="play">चलाएँ</string>
+    <string name="search_hint">फ़िल्में, सीरीज़ और एनीमे खोजें</string><string name="clear">मिटाएँ</string>
+    <string name="continue_watching">देखना जारी रखें</string><string name="no_favorites">अभी कोई पसंदीदा नहीं</string>
+    <string name="no_history">देखने का कोई इतिहास नहीं</string><string name="no_downloads">अभी कोई डाउनलोड नहीं</string>
+    <string name="resume">जारी रखें</string><string name="movie">फ़िल्म</string><string name="theme">थीम</string>
+    <string name="theme_system">सिस्टम</string><string name="theme_light">हल्की</string><string name="theme_dark">गहरी</string>
+    <string name="theme_oled">OLED काला</string><string name="theme_blue">नीला</string><string name="theme_green">हरा</string><string name="theme_rose">गुलाबी</string>
+</resources>

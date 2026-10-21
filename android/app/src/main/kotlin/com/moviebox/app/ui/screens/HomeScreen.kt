@@ -68,6 +68,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import com.moviebox.app.R
 import coil.compose.AsyncImage
 import com.moviebox.app.core.CatalogItem
 import com.moviebox.app.core.DownloadJob
@@ -110,10 +112,10 @@ fun HomeScreen(
                 title = {
                     Text(
                         text = when (state.selectedTab) {
-                            MainTab.HOME -> "MovieBox"
-                            MainTab.FAVORITES -> "Favorites"
-                            MainTab.HISTORY -> "Watch History"
-                            MainTab.DOWNLOADS -> "Downloads"
+                            MainTab.HOME -> stringResource(R.string.app_name)
+                            MainTab.FAVORITES -> stringResource(R.string.favorites)
+                            MainTab.HISTORY -> stringResource(R.string.history)
+                            MainTab.DOWNLOADS -> stringResource(R.string.downloads)
                         },
                         fontWeight = FontWeight.Bold,
                     )
@@ -125,26 +127,26 @@ fun HomeScreen(
                 NavigationBarItem(
                     selected = state.selectedTab == MainTab.HOME,
                     onClick = { onSelectMainTab(MainTab.HOME) },
-                    icon = { Icon(Icons.Filled.Home, contentDescription = "Home") },
-                    label = { Text("Home") },
+                    icon = { Icon(Icons.Filled.Home, contentDescription = stringResource(R.string.home)) },
+                    label = { Text(stringResource(R.string.home)) },
                 )
                 NavigationBarItem(
                     selected = state.selectedTab == MainTab.FAVORITES,
                     onClick = { onSelectMainTab(MainTab.FAVORITES) },
-                    icon = { Icon(Icons.Filled.Favorite, contentDescription = "Favorites") },
-                    label = { Text("Favorites") },
+                    icon = { Icon(Icons.Filled.Favorite, contentDescription = stringResource(R.string.favorites)) },
+                    label = { Text(stringResource(R.string.favorites)) },
                 )
                 NavigationBarItem(
                     selected = state.selectedTab == MainTab.HISTORY,
                     onClick = { onSelectMainTab(MainTab.HISTORY) },
-                    icon = { Icon(Icons.Filled.History, contentDescription = "History") },
-                    label = { Text("History") },
+                    icon = { Icon(Icons.Filled.History, contentDescription = stringResource(R.string.history)) },
+                    label = { Text(stringResource(R.string.history)) },
                 )
                 NavigationBarItem(
                     selected = state.selectedTab == MainTab.DOWNLOADS,
                     onClick = { onSelectMainTab(MainTab.DOWNLOADS) },
-                    icon = { Icon(Icons.Filled.Download, contentDescription = "Downloads") },
-                    label = { Text("Downloads") },
+                    icon = { Icon(Icons.Filled.Download, contentDescription = stringResource(R.string.downloads)) },
+                    label = { Text(stringResource(R.string.downloads)) },
                 )
             }
         },
@@ -205,14 +207,14 @@ private fun HomeTabContent(
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 6.dp),
             singleLine = true,
-            placeholder = { Text("Search movies, series & anime") },
+            placeholder = { Text(stringResource(R.string.search_hint)) },
             leadingIcon = {
                 Icon(Icons.Filled.Search, contentDescription = null)
             },
             trailingIcon = {
                 if (state.query.isNotEmpty()) {
                     IconButton(onClick = { onQueryChange("") }) {
-                        Icon(Icons.Filled.Clear, contentDescription = "Clear")
+                        Icon(Icons.Filled.Clear, contentDescription = stringResource(R.string.clear))
                     }
                 }
             },

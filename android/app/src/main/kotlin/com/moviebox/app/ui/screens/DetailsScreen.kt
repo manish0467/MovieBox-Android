@@ -47,6 +47,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import com.moviebox.app.R
 import coil.compose.AsyncImage
 import com.moviebox.app.core.Release
 import com.moviebox.app.core.SubtitleOption
@@ -76,14 +78,14 @@ fun DetailsScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = state.details?.title ?: "Details",
+                        text = state.details?.title ?: stringResource(R.string.details),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 actions = {
@@ -91,13 +93,13 @@ fun DetailsScreen(
                         if (state.isFavorite) {
                             Icon(
                                 Icons.Filled.Favorite,
-                                contentDescription = "Remove from Favorites",
+                                contentDescription = stringResource(R.string.remove_favorite),
                                 tint = MaterialTheme.colorScheme.primary,
                             )
                         } else {
                             Icon(
                                 Icons.Outlined.FavoriteBorder,
-                                contentDescription = "Add to Favorites",
+                                contentDescription = stringResource(R.string.add_favorite),
                             )
                         }
                     }
@@ -114,7 +116,7 @@ fun DetailsScreen(
                     .padding(padding),
                 contentAlignment = Alignment.Center,
             ) {
-                if (state.loading) CircularProgressIndicator() else Text("Nothing to show")
+                if (state.loading) CircularProgressIndicator() else Text(stringResource(R.string.nothing_to_show))
             }
             return@Scaffold
         }
@@ -203,7 +205,7 @@ fun DetailsScreen(
             if (details.seasons.isNotEmpty()) {
                 item {
                     Text(
-                        text = "Seasons",
+                        text = stringResource(R.string.seasons),
                         style = MaterialTheme.typography.titleMedium,
                         modifier = Modifier.padding(horizontal = 16.dp),
                     )
@@ -243,7 +245,7 @@ fun DetailsScreen(
                 if (episodes.isNotEmpty()) {
                     item {
                         Text(
-                            text = "Episodes",
+                                text = stringResource(R.string.episodes),
                             style = MaterialTheme.typography.titleMedium,
                             modifier = Modifier.padding(horizontal = 16.dp),
                         )
@@ -278,7 +280,7 @@ fun DetailsScreen(
                 item {
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
-                        text = "Subtitles",
+                        text = stringResource(R.string.subtitles),
                         style = MaterialTheme.typography.titleMedium,
                         modifier = Modifier.padding(horizontal = 16.dp),
                     )
@@ -292,7 +294,7 @@ fun DetailsScreen(
                             FilterChip(
                                 selected = state.selectedSubtitle == null,
                                 onClick = { onSubtitleSelected(null) },
-                                label = { Text("None") },
+                                label = { Text(stringResource(R.string.none)) },
                             )
                         }
                         items(state.subtitles) { sub ->
@@ -309,7 +311,7 @@ fun DetailsScreen(
             item {
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
-                    text = "Sources",
+                    text = stringResource(R.string.sources),
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.padding(horizontal = 16.dp),
                 )
@@ -407,15 +409,15 @@ private fun ReleaseRow(
         }
         Spacer(modifier = Modifier.width(8.dp))
         OutlinedButton(onClick = onDownload) {
-            Icon(Icons.Filled.Download, contentDescription = "Download")
+            Icon(Icons.Filled.Download, contentDescription = stringResource(R.string.download))
             Spacer(modifier = Modifier.width(4.dp))
-            Text("Download", fontWeight = FontWeight.Medium)
+            Text(stringResource(R.string.download), fontWeight = FontWeight.Medium)
         }
         Spacer(modifier = Modifier.width(8.dp))
         Button(onClick = onPlay) {
             Icon(Icons.Filled.PlayArrow, contentDescription = null)
             Spacer(modifier = Modifier.width(4.dp))
-            Text("Play", fontWeight = FontWeight.Medium)
+            Text(stringResource(R.string.play), fontWeight = FontWeight.Medium)
         }
     }
 }
