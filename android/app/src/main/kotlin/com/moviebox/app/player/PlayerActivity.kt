@@ -1,54 +1,30 @@
 package com.moviebox.app.player
 
+import android.app.PictureInPictureParams
+import android.content.Context
+import android.content.res.Configuration
+import android.media.AudioManager
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.view.View
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
+import androidx.activity.viewModels
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.HighQuality
-import androidx.compose.material.icons.filled.Subtitles
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
+import androidx.media3.common.PlaybackParameters
+import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.DefaultHttpDataSource
@@ -57,6 +33,13 @@ import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.ui.PlayerView
 import com.moviebox.app.core.MovieBoxRepository
 import com.moviebox.app.core.SubtitleOption
+import com.moviebox.app.ui.player.GestureIconType
+import com.moviebox.app.ui.player.GestureHudState
+import com.moviebox.app.ui.player.GestureType
+import com.moviebox.app.ui.player.PlayerChapter
+import com.moviebox.app.ui.player.PlayerControlsOverlay
+import com.moviebox.app.ui.player.PlayerDialogType
+import com.moviebox.app.ui.player.PlayerViewModel
 import com.moviebox.app.ui.theme.MovieBoxTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -65,18 +48,9 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 import java.io.File
+import kotlin.math.abs
+import kotlin.math.roundToInt
 
-/**
- * Fullscreen player built on Media3 / ExoPlayer.
- *
- * Invariants strictly maintained:
- * 1. Stream headers (User-Agent, Referer, CloudFront cookie) are mandatory and
- *    applied to DefaultHttpDataSource.
- * 2. External subtitles are downloaded locally and attached to Media3 as SubtitleConfiguration.
- * 3. Video resolution picker caps max video height.
- * 4. Watch position is periodically flushed to the pending playback state store so
- *    the core bridge can reconcile history.
- */
 private val playerJson = Json {
     ignoreUnknownKeys = true
     isLenient = true
@@ -87,7 +61,10 @@ private val playerJson = Json {
 class PlayerActivity : ComponentActivity() {
 
     private var player: ExoPlayer? = null
+    private var playerViewRef: PlayerView? = null
+    private var mediaManager: PlayerMediaManager? = null
     private val repository = MovieBoxRepository()
+    private val viewModel: PlayerViewModel by viewModels()
 
     private var provider: String = ""
     private var subjectId: String = ""
@@ -99,9 +76,12 @@ class PlayerActivity : ComponentActivity() {
     private var headersMap: Map<String, String> = emptyMap()
     private var currentMediaUrl: String = ""
 
-    private val availableSubtitles = mutableStateOf<List<SubtitleOption>>(emptyList())
-    private val selectedSubtitleName = mutableStateOf<String?>("None")
-    private val selectedResolutionLabel = mutableStateOf("Auto")
+    // Gesture tracking state
+    private var startBrightness: Float = 0.5f
+    private var startVolume: Int = 0
+    private var maxVolume: Int = 1
+    private var startSeekPositionMs: Long = 0L
+    private var currentSeekTargetMs: Long? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -134,20 +114,18 @@ class PlayerActivity : ComponentActivity() {
             return
         }
 
+        viewModel.setMetadata(title, season, episode, coverUrl)
+
         if (subtitlesJson.isNotBlank()) {
             runCatching {
                 val list = playerJson.decodeFromString(
                     ListSerializer(SubtitleOption.serializer()),
                     subtitlesJson,
                 )
-                availableSubtitles.value = list
+                viewModel.setSubtitles(list)
             }
         }
 
-        // Apply mandatory HTTP headers (User-Agent, Referer, CloudFront cookies).
-        // The factory is wrapped in a DefaultDataSource so that local files
-        // (the downloaded subtitle track) are served by the file data source
-        // instead of the HTTP one.
         val httpFactory = DefaultHttpDataSource.Factory()
             .setAllowCrossProtocolRedirects(true)
             .setDefaultRequestProperties(headersMap)
@@ -157,6 +135,10 @@ class PlayerActivity : ComponentActivity() {
             .setMediaSourceFactory(DefaultMediaSourceFactory(dataSourceFactory))
             .build()
         player = exoPlayer
+
+        // Apply session speed
+        exoPlayer.playbackParameters = PlaybackParameters(PlayerSessionPreferences.playbackSpeed)
+        viewModel.setPlaybackSpeed(PlayerSessionPreferences.playbackSpeed)
 
         val initialMediaItem = buildMediaItem(url, title, null, null)
         exoPlayer.setMediaItem(initialMediaItem)
@@ -168,11 +150,49 @@ class PlayerActivity : ComponentActivity() {
         exoPlayer.prepare()
         exoPlayer.playWhenReady = true
 
-        // If an initial subtitle was chosen, download and attach it
+        mediaManager = PlayerMediaManager(this, exoPlayer, title, season, episode)
+        mediaManager?.updateNotification()
+
         if (!initialSubUrl.isNullOrBlank()) {
-            selectedSubtitleName.value = initialSubName ?: "Subtitles"
-            attachSubtitleFromUrl(initialSubUrl, initialSubName ?: "Default")
+            val name = initialSubName ?: "Subtitles"
+            viewModel.setSelectedSubtitle(name)
+            attachSubtitleFromUrl(initialSubUrl, name)
         }
+
+        // Listener for player events
+        exoPlayer.addListener(object : Player.Listener {
+            override fun onPlaybackStateChanged(playbackState: Int) {
+                updateProgressState()
+                mediaManager?.updateNotification()
+            }
+
+            override fun onIsPlayingChanged(isPlaying: Boolean) {
+                updateProgressState()
+                mediaManager?.updateNotification()
+            }
+
+            override fun onPositionDiscontinuity(
+                oldPosition: Player.PositionInfo,
+                newPosition: Player.PositionInfo,
+                reason: Int,
+            ) {
+                mediaManager?.updateNotification()
+            }
+
+            override fun onMetadata(metadata: androidx.media3.common.Metadata) {
+                val extracted = PlayerChapters.extractFromMetadata(metadata)
+                if (extracted.isNotEmpty()) {
+                    viewModel.setChapters(extracted)
+                }
+            }
+
+            override fun onMediaMetadataChanged(mediaMetadata: androidx.media3.common.MediaMetadata) {
+                val extracted = PlayerChapters.extractFromMediaMetadata(mediaMetadata)
+                if (extracted.isNotEmpty()) {
+                    viewModel.setChapters(extracted)
+                }
+            }
+        })
 
         // Periodic watch progress recording back to the bridge
         lifecycleScope.launch {
@@ -180,38 +200,275 @@ class PlayerActivity : ComponentActivity() {
                 delay(4000)
                 if (player?.isPlaying == true) {
                     saveProgress()
+                    updateProgressState()
                 }
             }
         }
 
         setContent {
             MovieBoxTheme {
-                PlayerScreenContent(
-                    player = exoPlayer,
-                    title = title,
-                    season = season,
-                    episode = episode,
-                    subtitles = availableSubtitles.value,
-                    selectedSubtitle = selectedSubtitleName.value,
-                    selectedResolution = selectedResolutionLabel.value,
-                    onBack = {
-                        saveProgress()
-                        finish()
-                    },
-                    onSelectSubtitle = { sub ->
-                        if (sub == null) {
-                            selectedSubtitleName.value = "None"
-                            disableSubtitles()
-                        } else {
-                            selectedSubtitleName.value = sub.name
-                            attachSubtitleFromUrl(sub.url, sub.name)
-                        }
-                    },
-                    onSelectResolution = { label, height ->
-                        selectedResolutionLabel.value = label
-                        setResolutionLimit(height)
-                    },
+                val uiState by viewModel.uiState.collectAsState()
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black),
+                ) {
+                    AndroidView(
+                        modifier = Modifier.fillMaxSize(),
+                        factory = { context ->
+                            PlayerView(context).apply {
+                                player = exoPlayer
+                                useController = true
+                                setControllerVisibilityListener(PlayerView.ControllerVisibilityListener { visibility ->
+                                    viewModel.setControlsVisible(visibility == View.VISIBLE)
+                                })
+                                playerViewRef = this
+                                applySubtitleStyle()
+                            }
+                        },
+                    )
+
+                    PlayerControlsOverlay(
+                        uiState = uiState,
+                        onBack = {
+                            saveProgress()
+                            finish()
+                        },
+                        onTogglePip = {
+                            enterPipMode()
+                        },
+                        onOpenDialog = { dialog ->
+                            viewModel.setDialog(dialog)
+                        },
+                        onDismissDialog = {
+                            viewModel.dismissDialog()
+                        },
+                        onSelectResolution = { label, height ->
+                            viewModel.setResolution(label)
+                            setResolutionLimit(height)
+                        },
+                        onSelectSubtitle = { sub ->
+                            if (sub == null) {
+                                viewModel.setSelectedSubtitle("None")
+                                disableSubtitles()
+                            } else {
+                                viewModel.setSelectedSubtitle(sub.name)
+                                attachSubtitleFromUrl(sub.url, sub.name)
+                            }
+                        },
+                        onSelectSpeed = { speed ->
+                            viewModel.setPlaybackSpeed(speed)
+                            exoPlayer.playbackParameters = PlaybackParameters(speed)
+                        },
+                        onSeekToChapter = { chapter ->
+                            exoPlayer.seekTo(chapter.startTimeMs)
+                        },
+                        onUpdateSubtitleStyle = { sizeSp, textColor, backgroundColor ->
+                            PlayerSessionPreferences.subtitleTextSizeSp = sizeSp
+                            PlayerSessionPreferences.subtitleTextColor = textColor
+                            PlayerSessionPreferences.subtitleBackgroundColor = backgroundColor
+                            applySubtitleStyle()
+                        },
+                        onDragStart = { gesture, startX, startY ->
+                            handleGestureStart(gesture)
+                        },
+                        onDragStep = { gesture, deltaX, deltaY, totalDx, totalDy ->
+                            handleGestureStep(gesture, totalDx, totalDy)
+                        },
+                        onDragEnd = { gesture ->
+                            handleGestureEnd(gesture)
+                        },
+                        onTapSurface = {
+                            playerViewRef?.let { pv ->
+                                if (pv.isControllerFullyVisible) {
+                                    pv.hideController()
+                                    viewModel.setControlsVisible(false)
+                                } else {
+                                    pv.showController()
+                                    viewModel.setControlsVisible(true)
+                                }
+                            } ?: viewModel.toggleControls()
+                        },
+                    )
+                }
+            }
+        }
+    }
+
+    private fun handleGestureStart(gesture: GestureType) {
+        when (gesture) {
+            GestureType.BRIGHTNESS -> {
+                val current = window.attributes.screenBrightness
+                startBrightness = if (current < 0f) 0.5f else current
+            }
+            GestureType.VOLUME -> {
+                val am = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+                startVolume = am.getStreamVolume(AudioManager.STREAM_MUSIC)
+                maxVolume = am.getStreamMaxVolume(AudioManager.STREAM_MUSIC).coerceAtLeast(1)
+            }
+            GestureType.SEEK -> {
+                startSeekPositionMs = player?.currentPosition ?: 0L
+                currentSeekTargetMs = startSeekPositionMs
+            }
+        }
+    }
+
+    private fun handleGestureStep(gesture: GestureType, totalDx: Float, totalDy: Float) {
+        val dm = resources.displayMetrics
+        val screenHeight = dm.heightPixels.toFloat().coerceAtLeast(1f)
+        val screenWidth = dm.widthPixels.toFloat().coerceAtLeast(1f)
+
+        when (gesture) {
+            GestureType.BRIGHTNESS -> {
+                // Drag up (negative dy) increases brightness
+                val delta = -totalDy / (screenHeight * 0.75f)
+                val targetBrightness = (startBrightness + delta).coerceIn(0.01f, 1.0f)
+
+                val lp = window.attributes
+                lp.screenBrightness = targetBrightness
+                window.attributes = lp
+
+                val percent = (targetBrightness * 100).roundToInt()
+                val icon = when {
+                    percent > 66 -> GestureIconType.BRIGHTNESS_HIGH
+                    percent > 33 -> GestureIconType.BRIGHTNESS_MED
+                    else -> GestureIconType.BRIGHTNESS_LOW
+                }
+
+                viewModel.showGestureHud(
+                    GestureHudState(
+                        type = GestureType.BRIGHTNESS,
+                        valuePercent = percent,
+                        text = "Brightness $percent%",
+                        iconType = icon,
+                    ),
                 )
+            }
+
+            GestureType.VOLUME -> {
+                val am = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+                val delta = -totalDy / (screenHeight * 0.75f)
+                val targetVolume = (startVolume + (delta * maxVolume)).roundToInt().coerceIn(0, maxVolume)
+
+                am.setStreamVolume(AudioManager.STREAM_MUSIC, targetVolume, 0)
+                val percent = (targetVolume * 100 / maxVolume)
+                val icon = when {
+                    targetVolume == 0 -> GestureIconType.VOLUME_MUTE
+                    percent > 66 -> GestureIconType.VOLUME_HIGH
+                    percent > 33 -> GestureIconType.VOLUME_MED
+                    else -> GestureIconType.VOLUME_LOW
+                }
+
+                viewModel.showGestureHud(
+                    GestureHudState(
+                        type = GestureType.VOLUME,
+                        valuePercent = percent,
+                        text = "Volume $percent%",
+                        iconType = icon,
+                    ),
+                )
+            }
+
+            GestureType.SEEK -> {
+                val duration = player?.duration ?: 0L
+                val scrubWindowMs = 90_000L.coerceAtLeast(if (duration > 0) (duration * 0.15f).toLong() else 90_000L)
+                val deltaMs = ((totalDx / screenWidth) * scrubWindowMs).toLong()
+                val targetMs = (startSeekPositionMs + deltaMs).coerceIn(0L, duration.coerceAtLeast(0L))
+                currentSeekTargetMs = targetMs
+                viewModel.setSeekScrubPosition(targetMs)
+
+                val absDeltaSec = abs(deltaMs) / 1000
+                val deltaSign = if (deltaMs >= 0) "+" else "-"
+                val deltaStr = String.format("%s%02d:%02d", deltaSign, absDeltaSec / 60, absDeltaSec % 60)
+
+                val targetSec = targetMs / 1000
+                val targetStr = String.format("%02d:%02d", targetSec / 60, targetSec % 60)
+                val icon = if (deltaMs >= 0) GestureIconType.SEEK_FORWARD else GestureIconType.SEEK_REWIND
+                val percent = if (duration > 0) ((targetMs * 100) / duration).toInt() else 0
+
+                viewModel.showGestureHud(
+                    GestureHudState(
+                        type = GestureType.SEEK,
+                        valuePercent = percent,
+                        text = targetStr,
+                        iconType = icon,
+                        deltaText = deltaStr,
+                    ),
+                )
+            }
+        }
+    }
+
+    private fun handleGestureEnd(gesture: GestureType) {
+        if (gesture == GestureType.SEEK) {
+            currentSeekTargetMs?.let { player?.seekTo(it) }
+            currentSeekTargetMs = null
+            viewModel.setSeekScrubPosition(null)
+        }
+        viewModel.hideGestureHudDelayed(800L)
+    }
+
+    private fun updateProgressState() {
+        val p = player ?: return
+        viewModel.updatePlaybackProgress(
+            positionMs = p.currentPosition,
+            durationMs = p.duration,
+            isPlaying = p.isPlaying,
+        )
+    }
+
+    private fun buildPipParams(): PictureInPictureParams? {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return null
+        val builder = PictureInPictureParams.Builder()
+
+        val p = player
+        if (p != null) {
+            val videoSize = p.videoSize
+            if (videoSize.width > 0 && videoSize.height > 0) {
+                val ratio = videoSize.width.toFloat() / videoSize.height.toFloat()
+                // Rational aspect ratio must be between 0.418410 and 2.390000
+                if (ratio in 0.42f..2.38f) {
+                    builder.setAspectRatio(android.util.Rational(videoSize.width, videoSize.height))
+                }
+            }
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            builder.setAutoEnterEnabled(true)
+        }
+
+        return builder.build()
+    }
+
+    private fun enterPipMode() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val params = buildPipParams() ?: PictureInPictureParams.Builder().build()
+            enterPictureInPictureMode(params)
+        }
+    }
+
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        if (player?.isPlaying == true) {
+            enterPipMode()
+        }
+    }
+
+    override fun onPictureInPictureModeChanged(
+        isInPictureInPictureMode: Boolean,
+        newConfig: Configuration,
+    ) {
+        super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
+        viewModel.setInPipMode(isInPictureInPictureMode)
+        playerViewRef?.apply {
+            useController = !isInPictureInPictureMode
+            if (!isInPictureInPictureMode) {
+                showController()
+                viewModel.setControlsVisible(true)
+            } else {
+                hideController()
+                viewModel.setControlsVisible(false)
             }
         }
     }
@@ -267,13 +524,29 @@ class PlayerActivity : ComponentActivity() {
                 val updatedItem = buildMediaItem(currentMediaUrl, title, file, label)
                 exo.setMediaItem(updatedItem, currentPos)
                 exo.playWhenReady = isPlaying
-                // Ensure text tracks are enabled
                 exo.trackSelectionParameters = exo.trackSelectionParameters
                     .buildUpon()
                     .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, false)
                     .build()
             }
         }
+    }
+
+    private fun applySubtitleStyle() {
+        val subtitleView = playerViewRef?.subtitleView ?: return
+        val style = androidx.media3.ui.CaptionStyleCompat(
+            PlayerSessionPreferences.subtitleTextColor,
+            PlayerSessionPreferences.subtitleBackgroundColor,
+            android.graphics.Color.TRANSPARENT,
+            PlayerSessionPreferences.subtitleEdgeType,
+            PlayerSessionPreferences.subtitleEdgeColor,
+            null,
+        )
+        subtitleView.setStyle(style)
+        subtitleView.setFixedTextSize(
+            android.util.TypedValue.COMPLEX_UNIT_SP,
+            PlayerSessionPreferences.subtitleTextSizeSp,
+        )
     }
 
     private fun disableSubtitles() {
@@ -333,12 +606,13 @@ class PlayerActivity : ComponentActivity() {
 
     override fun onDestroy() {
         saveProgress()
+        mediaManager?.release()
+        mediaManager = null
         player?.release()
         player = null
         super.onDestroy()
     }
 
-    /** Returns the explicit MIME type for manifest based streams, if any. */
     private fun mimeTypeFor(url: String): String? = when {
         url.contains(".mpd") -> MimeTypes.APPLICATION_MPD
         url.contains(".m3u8") -> MimeTypes.APPLICATION_M3U8
@@ -359,214 +633,5 @@ class PlayerActivity : ComponentActivity() {
         const val EXTRA_SUBTITLE_URL = "com.moviebox.app.extra.SUBTITLE_URL"
         const val EXTRA_SUBTITLE_NAME = "com.moviebox.app.extra.SUBTITLE_NAME"
         const val EXTRA_SUBTITLES_JSON = "com.moviebox.app.extra.SUBTITLES_JSON"
-    }
-}
-
-@Composable
-private fun PlayerScreenContent(
-    player: ExoPlayer,
-    title: String,
-    season: Int,
-    episode: Int,
-    subtitles: List<SubtitleOption>,
-    selectedSubtitle: String?,
-    selectedResolution: String,
-    onBack: () -> Unit,
-    onSelectSubtitle: (SubtitleOption?) -> Unit,
-    onSelectResolution: (String, Int?) -> Unit,
-) {
-    var showControls by remember { mutableStateOf(true) }
-    var showSubtitleDialog by remember { mutableStateOf(false) }
-    var showResolutionDialog by remember { mutableStateOf(false) }
-
-    val resolutions = listOf(
-        "Auto" to null,
-        "1080p" to 1080,
-        "720p" to 720,
-        "480p" to 480,
-        "360p" to 360,
-    )
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black)
-            .clickable(
-                indication = null,
-                interactionSource = remember { MutableInteractionSource() },
-            ) {
-                showControls = !showControls
-            },
-    ) {
-        AndroidView(
-            modifier = Modifier.fillMaxSize(),
-            factory = { context ->
-                PlayerView(context).apply {
-                    this.player = player
-                    useController = true
-                }
-            },
-        )
-
-        AnimatedVisibility(
-            visible = showControls,
-            enter = fadeIn(),
-            exit = fadeOut(),
-            modifier = Modifier.align(Alignment.TopCenter),
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color.Black.copy(alpha = 0.65f))
-                    .statusBarsPadding()
-                    .padding(horizontal = 8.dp, vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                IconButton(onClick = onBack) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back",
-                        tint = Color.White,
-                    )
-                }
-
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = title,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = Color.White,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    if (season > 0 || episode > 0) {
-                        Text(
-                            text = "Season $season · Episode $episode",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color.LightGray,
-                        )
-                    }
-                }
-
-                IconButton(onClick = { showResolutionDialog = true }) {
-                    Icon(
-                        Icons.Filled.HighQuality,
-                        contentDescription = "Resolution ($selectedResolution)",
-                        tint = if (selectedResolution != "Auto") MaterialTheme.colorScheme.primary else Color.White,
-                    )
-                }
-
-                IconButton(onClick = { showSubtitleDialog = true }) {
-                    Icon(
-                        Icons.Filled.Subtitles,
-                        contentDescription = "Subtitles ($selectedSubtitle)",
-                        tint = if (selectedSubtitle != "None" && selectedSubtitle != null) MaterialTheme.colorScheme.primary else Color.White,
-                    )
-                }
-            }
-        }
-
-        if (showSubtitleDialog) {
-            AlertDialog(
-                onDismissRequest = { showSubtitleDialog = false },
-                title = { Text("Subtitles") },
-                text = {
-                    LazyColumn {
-                        item {
-                            SubtitleDialogRow(
-                                title = "None (Off)",
-                                selected = selectedSubtitle == null || selectedSubtitle == "None",
-                                onClick = {
-                                    onSelectSubtitle(null)
-                                    showSubtitleDialog = false
-                                },
-                            )
-                        }
-                        items(subtitles) { sub ->
-                            SubtitleDialogRow(
-                                title = sub.name,
-                                selected = selectedSubtitle == sub.name,
-                                onClick = {
-                                    onSelectSubtitle(sub)
-                                    showSubtitleDialog = false
-                                },
-                            )
-                        }
-                    }
-                },
-                confirmButton = {
-                    TextButton(onClick = { showSubtitleDialog = false }) {
-                        Text("Close")
-                    }
-                },
-            )
-        }
-
-        if (showResolutionDialog) {
-            AlertDialog(
-                onDismissRequest = { showResolutionDialog = false },
-                title = { Text("Quality / Resolution") },
-                text = {
-                    LazyColumn {
-                        items(resolutions) { (label, height) ->
-                            ResolutionDialogRow(
-                                title = label,
-                                selected = selectedResolution == label,
-                                onClick = {
-                                    onSelectResolution(label, height)
-                                    showResolutionDialog = false
-                                },
-                            )
-                        }
-                    }
-                },
-                confirmButton = {
-                    TextButton(onClick = { showResolutionDialog = false }) {
-                        Text("Close")
-                    }
-                },
-            )
-        }
-    }
-}
-
-@Composable
-private fun SubtitleDialogRow(title: String, selected: Boolean, onClick: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(vertical = 12.dp, horizontal = 8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.bodyLarge,
-            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
-        )
-        if (selected) {
-            Icon(Icons.Filled.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-        }
-    }
-}
-
-@Composable
-private fun ResolutionDialogRow(title: String, selected: Boolean, onClick: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(vertical = 12.dp, horizontal = 8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.bodyLarge,
-            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
-        )
-        if (selected) {
-            Icon(Icons.Filled.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-        }
     }
 }
