@@ -1,0 +1,12 @@
+*.iml
+.gradle/
+local.properties
+.idea/
+.DS_Store
+build/
+captures/
+.externalNativeBuild
+.cxx
+target/
+# Rust build output copied into the APK
+android/app/src/main/jniLibs/
