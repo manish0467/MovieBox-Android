@@ -62,6 +62,7 @@ class PlayerActivity : ComponentActivity() {
 
     private var player: ExoPlayer? = null
     private var playerViewRef: PlayerView? = null
+    private var mediaManager: PlayerMediaManager? = null
     private val repository = MovieBoxRepository()
     private val viewModel: PlayerViewModel by viewModels()
 
@@ -149,6 +150,9 @@ class PlayerActivity : ComponentActivity() {
         exoPlayer.prepare()
         exoPlayer.playWhenReady = true
 
+        mediaManager = PlayerMediaManager(this, exoPlayer, title, season, episode)
+        mediaManager?.updateNotification()
+
         if (!initialSubUrl.isNullOrBlank()) {
             val name = initialSubName ?: "Subtitles"
             viewModel.setSelectedSubtitle(name)
@@ -159,10 +163,20 @@ class PlayerActivity : ComponentActivity() {
         exoPlayer.addListener(object : Player.Listener {
             override fun onPlaybackStateChanged(playbackState: Int) {
                 updateProgressState()
+                mediaManager?.updateNotification()
             }
 
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 updateProgressState()
+                mediaManager?.updateNotification()
+            }
+
+            override fun onPositionDiscontinuity(
+                oldPosition: Player.PositionInfo,
+                newPosition: Player.PositionInfo,
+                reason: Int,
+            ) {
+                mediaManager?.updateNotification()
             }
 
             override fun onMetadata(metadata: androidx.media3.common.Metadata) {
@@ -590,6 +604,8 @@ class PlayerActivity : ComponentActivity() {
 
     override fun onDestroy() {
         saveProgress()
+        mediaManager?.release()
+        mediaManager = null
         player?.release()
         player = null
         super.onDestroy()
