@@ -103,17 +103,46 @@ shows an "isn't responding" dialog — that is the emulator, not the app. Search
 
 ## Lanes and file ownership
 
-Three agents work in parallel, each in its own worktree. **Do not edit files
-outside your lane** — a conflict costs more than the feature.
+Three agents work in parallel, each in its own worktree, on its own branch.
+**Do not edit files outside your lane** — a conflict costs more than the
+feature.
 
-| Lane | Worktree | Owns |
-| :--- | :--- | :--- |
-| Player | `../box-android-player` | `player/**`, `ui/player/**` |
-| Design | `../box-android-design` | `ui/theme/**`, `res/**` |
-| Core | `../box-android-core` | `core/**`, `crates/moviebox-android/**`, `MainActivity.kt`, `.github/**`, `docs/**` |
+| Lane | Worktree | Branch | Owns |
+| :--- | :--- | :--- | :--- |
+| Player | `../box-android-player` | `feat/player-polish` | `player/**`, `ui/player/**` |
+| Design | `../box-android-design` | `feat/design-system` | `ui/theme/**`, `res/**`, the strings in `ui/screens/**` |
+| Core | `../box-android-core` | `feat/quality-memory` | `core/**`, `crates/moviebox-android/**`, `MainActivity.kt`, `.github/**`, `docs/**` |
 
 If you need something from another lane, say so in your report instead of
 editing it.
+
+### One branch per lane, one commit per feature
+
+Stay on your lane's branch. Do not create a second branch, and do not push —
+the integrator merges the lane. Commit each finished feature separately with a
+conventional commit message, so the lane branch can be fast-forwarded:
+
+```bash
+git add <only the files you own>
+git commit -m "feat(player): add gesture controls"
+```
+
+**Commit your work.** An uncommitted lane cannot be merged and the work is
+lost when the worktree goes away. Report the commit hashes you created.
+
+### The lanes are file-disjoint but not independent
+
+Disjoint files mean no *merge* conflicts. Two couplings still exist, so keep to
+these rules:
+
+- **The theme API must stay source-compatible.** The design lane may add theme
+  modes, but `MovieBoxTheme` and `MovieBoxColors` must keep working for a
+  caller that passes no arguments, or the player lane stops compiling. If a
+  signature has to change, report it instead of changing it.
+- **String extraction is sequential.** The design lane extracts the strings of
+  the screens it owns (`ui/screens/**`). The player's own strings stay as they
+  are; the integrator extracts them once the player lane has landed, so the
+  two lanes never edit the same file.
 
 ## Before you say "done"
 
