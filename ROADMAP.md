@@ -28,7 +28,6 @@ features that make it feel like a real player, in order of value:
 | Picture in picture, properly driven | `enterPictureInPictureMode()` on user intent | player lane |
 | Background playback | `MediaSession` + `MediaSessionService` + a media notification | player lane |
 | Seek preview thumbnails | a thumbnail loader over the scrub position | player lane |
-| Casting | the Cast SDK and a registered application id | core lane |
 | Theme set and picker (light, dark, OLED, accents) + dynamic colour | `MovieBoxTheme` variants, stored in the core's `config.json` | design lane |
 | Localisation | `res/values/strings.xml` and `values-xx/` | design lane |
 | Tablet and adaptive layouts | `res/layout*` and window size classes | design lane |
@@ -85,6 +84,12 @@ tap-to-play through the existing player.
 
 ## Later
 
+- **Casting.** The Cast SDK plus a button on the player. This needs a Cast
+  **application id**, which is registered in the Google Cast console against a
+  package name and a signing certificate — so it waits until the app has a
+  release keystore, otherwise the registered id would not match the shipped
+  build. Everything else about casting (the SDK, the session manager, the
+  route picker) can be built before that.
 - **Stremio addons.** The terminal client supports community addons; the app
   would need the manifest, catalog and stream providers bridged, plus a source
   picker.
