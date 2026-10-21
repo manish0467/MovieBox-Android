@@ -107,11 +107,15 @@ Three agents work in parallel, each in its own worktree, on its own branch.
 **Do not edit files outside your lane** — a conflict costs more than the
 feature.
 
-| Lane | Worktree | Branch | Owns |
-| :--- | :--- | :--- | :--- |
-| Player | `../box-android-player` | `feat/player-polish` | `player/**`, `ui/player/**` |
-| Design | `../box-android-design` | `feat/design-system` | `ui/theme/**`, `res/**`, the strings in `ui/screens/**` |
-| Core | `../box-android-core` | `feat/quality-memory` | `core/**`, `crates/moviebox-android/**`, `MainActivity.kt`, `.github/**`, `docs/**` |
+| Lane | Worktree | Branch | Owns | State |
+| :--- | :--- | :--- | :--- | :--- |
+| Player | `../box-android-player` | `feat/player-polish` | `player/**`, `ui/player/**` | landed and merged |
+| Design | `../box-android-design` | `feat/design-system` | `ui/theme/**`, `res/**`, the strings in `ui/screens/**` | **the lane that is still open** |
+| Core | `../box-android-core` | `feat/quality-memory` | `core/**`, `crates/moviebox-android/**`, `MainActivity.kt`, `.github/**`, `docs/**` | landed and merged |
+
+The player and core lanes have finished and their work is in `main`. The
+**player files are free to edit now** — the design lane extracts the player's
+strings as part of the localisation pass.
 
 If you need something from another lane, say so in your report instead of
 editing it.
@@ -139,10 +143,10 @@ these rules:
   modes, but `MovieBoxTheme` and `MovieBoxColors` must keep working for a
   caller that passes no arguments, or the player lane stops compiling. If a
   signature has to change, report it instead of changing it.
-- **String extraction is sequential.** The design lane extracts the strings of
-  the screens it owns (`ui/screens/**`). The player's own strings stay as they
-  are; the integrator extracts them once the player lane has landed, so the
-  two lanes never edit the same file.
+- **String extraction.** The design lane extracts the strings of the screens
+  it owns (`ui/screens/**`) and — now that the player lane has landed — of
+  `player/**` and `ui/player/**` as well. The player's strings are hardcoded
+  English today; they are the last untranslated surface.
 
 ## Before you say "done"
 
