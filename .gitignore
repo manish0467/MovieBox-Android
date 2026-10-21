@@ -10,3 +10,8 @@ captures/
 target/
 # Rust build output copied into the APK
 android/app/src/main/jniLibs/
+
+# The release signing key and its properties never enter the repository.
+keystore.properties
+*.jks
+*.keystore
