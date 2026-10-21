@@ -398,7 +398,7 @@ private fun HomeTabContent(
                                 Tab(
                                     selected = selectedIndex == index,
                                     onClick = { onSelectHomeDeckTab(tab.id) },
-                                    text = { Text(tab.title) },
+                                    text = { Text(stringResource(tab.titleRes)) },
                                 )
                             }
                         }

@@ -1,11 +1,13 @@
 package com.moviebox.app.ui
 
 import android.app.Application
+import androidx.annotation.StringRes
 import androidx.lifecycle.AndroidViewModel
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.viewModelScope
+import com.moviebox.app.R
 import com.moviebox.app.core.CatalogItem
 import com.moviebox.app.core.DownloadJob
 import com.moviebox.app.core.DownloadRequest
@@ -33,13 +35,14 @@ enum class MainTab(val title: String) {
 
 data class HomeDeckTab(
     val id: String,
-    val title: String,
+    /** The label comes from the resources, so it is localisable. */
+    @StringRes val titleRes: Int,
 )
 
 val DEFAULT_HOME_DECK_TABS = listOf(
-    HomeDeckTab("0", "Featured"),
-    HomeDeckTab("1", "Movies"),
-    HomeDeckTab("2", "Series"),
+    HomeDeckTab("0", R.string.deck_featured),
+    HomeDeckTab("1", R.string.deck_movies),
+    HomeDeckTab("2", R.string.deck_series),
 )
 
 /** What the update check found. */

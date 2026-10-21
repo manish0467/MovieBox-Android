@@ -39,4 +39,8 @@
     <string name="update_download_failed">আপডেট ডাউনলোড বা যাচাই করা যায়নি।</string>
     <string name="update_install_blocked">আপডেট ইনস্টল করার অনুমতি দিন, তারপর আবার চেষ্টা করুন।</string>
     <string name="update_install_failed">ইনস্টলার খোলা যায়নি।</string>
+
+    <string name="deck_featured">নির্বাচিত</string>
+    <string name="deck_movies">সিনেমা</string>
+    <string name="deck_series">সিরিজ</string>
 </resources>

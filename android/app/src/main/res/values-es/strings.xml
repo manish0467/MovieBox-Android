@@ -39,4 +39,8 @@
     <string name="update_download_failed">No se pudo descargar o verificar la actualización.</string>
     <string name="update_install_blocked">Permite que la app instale actualizaciones y vuelve a intentarlo.</string>
     <string name="update_install_failed">No se pudo abrir el instalador.</string>
+
+    <string name="deck_featured">Destacados</string>
+    <string name="deck_movies">Películas</string>
+    <string name="deck_series">Series</string>
 </resources>
