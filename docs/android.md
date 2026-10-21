@@ -258,6 +258,11 @@ The following was reproduced on this repository:
 | `./gradlew assembleDebug` | ✅ `app-debug.apk` (26.9 MB) |
 | `./gradlew assembleRelease` | ✅ `app-release-unsigned.apk` (8.2 MB, R8 + resource shrinking) |
 
+## Roadmap
+
+The planned work — the player polish, the design system, Live TV and the
+release engineering — is in [ROADMAP.md](../ROADMAP.md).
+
 ## Verified on a device
 
 The app was installed on an Android 15 (API 35) x86_64 emulator and driven
