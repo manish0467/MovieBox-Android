@@ -43,4 +43,12 @@
     <string name="deck_featured">Destacados</string>
     <string name="deck_movies">Películas</string>
     <string name="deck_series">Series</string>
+    <string name="pause">Pausar</string><string name="retry">Reintentar</string><string name="open">Abrir</string>
+    <string name="cancel_remove">Cancelar y quitar</string><string name="remove_from_list">Quitar de la lista</string>
+    <string name="season_chip">T%1$d</string><string name="chapters">Capítulos</string><string name="speed">Velocidad</string>
+    <string name="style">Estilo</string><string name="quality_resolution">Calidad / resolución</string>
+    <string name="playback_speed">Velocidad de reproducción</string><string name="reset_playback_speed">Restablecer (1,0x)</string>
+    <string name="subtitle_styling">Estilo de subtítulos</string><string name="done">Listo</string>
+    <string name="picture_in_picture">Imagen en imagen</string><string name="seek_preview_thumbnail">Miniatura de vista previa al buscar</string>
+    <string name="player_resolution">Resolución (%1$s)</string><string name="player_subtitles">Subtítulos (%1$s)</string>
 </resources>

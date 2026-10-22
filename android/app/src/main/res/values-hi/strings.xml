@@ -43,4 +43,12 @@
     <string name="deck_featured">विशेष</string>
     <string name="deck_movies">फ़िल्में</string>
     <string name="deck_series">सीरीज़</string>
+    <string name="pause">रोकें</string><string name="retry">फिर कोशिश करें</string><string name="open">खोलें</string>
+    <string name="cancel_remove">रद्द करके हटाएँ</string><string name="remove_from_list">सूची से हटाएँ</string>
+    <string name="season_chip">S%1$d</string><string name="chapters">अध्याय</string><string name="speed">गति</string>
+    <string name="style">शैली</string><string name="quality_resolution">गुणवत्ता / रिज़ॉल्यूशन</string>
+    <string name="playback_speed">प्लेबैक गति</string><string name="reset_playback_speed">रीसेट (1.0x)</string>
+    <string name="subtitle_styling">सबटाइटल शैली</string><string name="done">हो गया</string>
+    <string name="picture_in_picture">पिक्चर इन पिक्चर</string><string name="seek_preview_thumbnail">सीक प्रीव्यू थंबनेल</string>
+    <string name="player_resolution">रिज़ॉल्यूशन (%1$s)</string><string name="player_subtitles">सबटाइटल (%1$s)</string>
 </resources>

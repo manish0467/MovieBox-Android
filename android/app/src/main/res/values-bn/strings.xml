@@ -43,4 +43,12 @@
     <string name="deck_featured">নির্বাচিত</string>
     <string name="deck_movies">সিনেমা</string>
     <string name="deck_series">সিরিজ</string>
+    <string name="pause">বিরতি</string><string name="retry">আবার চেষ্টা করুন</string><string name="open">খুলুন</string>
+    <string name="cancel_remove">বাতিল করে সরান</string><string name="remove_from_list">তালিকা থেকে সরান</string>
+    <string name="season_chip">S%1$d</string><string name="chapters">অধ্যায়</string><string name="speed">গতি</string>
+    <string name="style">শৈলী</string><string name="quality_resolution">গুণমান / রেজোলিউশন</string>
+    <string name="playback_speed">প্লেব্যাকের গতি</string><string name="reset_playback_speed">রিসেট (1.0x)</string>
+    <string name="subtitle_styling">সাবটাইটেলের শৈলী</string><string name="done">সম্পন্ন</string>
+    <string name="picture_in_picture">পিকচার ইন পিকচার</string><string name="seek_preview_thumbnail">সিক প্রিভিউ থাম্বনেইল</string>
+    <string name="player_resolution">রেজোলিউশন (%1$s)</string><string name="player_subtitles">সাবটাইটেল (%1$s)</string>
 </resources>

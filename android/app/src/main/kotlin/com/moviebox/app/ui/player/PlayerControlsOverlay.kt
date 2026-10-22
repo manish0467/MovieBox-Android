@@ -43,6 +43,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.moviebox.app.R
 import com.moviebox.app.core.SubtitleOption
 
 /**
@@ -126,7 +128,7 @@ fun PlayerControlsOverlay(
                 IconButton(onClick = onBack) {
                     Icon(
                         Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back",
+                        contentDescription = stringResource(R.string.back),
                         tint = Color.White,
                     )
                 }
@@ -153,7 +155,7 @@ fun PlayerControlsOverlay(
                     IconButton(onClick = { onOpenDialog(PlayerDialogType.CHAPTERS) }) {
                         Icon(
                             Icons.Filled.VideoLibrary,
-                            contentDescription = "Chapters",
+                            contentDescription = stringResource(R.string.chapters),
                             tint = Color.White,
                         )
                     }
@@ -171,7 +173,7 @@ fun PlayerControlsOverlay(
                     ) {
                         Icon(
                             Icons.Filled.Speed,
-                            contentDescription = "Speed",
+                            contentDescription = stringResource(R.string.speed),
                             tint = if (uiState.playbackSpeed != 1.0f) MaterialTheme.colorScheme.primary else Color.White,
                             modifier = Modifier.padding(end = 4.dp),
                         )
@@ -188,7 +190,7 @@ fun PlayerControlsOverlay(
                 IconButton(onClick = { onOpenDialog(PlayerDialogType.QUALITY) }) {
                     Icon(
                         Icons.Filled.HighQuality,
-                        contentDescription = "Resolution (${uiState.selectedResolution})",
+                        contentDescription = stringResource(R.string.player_resolution, uiState.selectedResolution),
                         tint = if (uiState.selectedResolution != "Auto") MaterialTheme.colorScheme.primary else Color.White,
                     )
                 }
@@ -197,7 +199,7 @@ fun PlayerControlsOverlay(
                 IconButton(onClick = { onOpenDialog(PlayerDialogType.SUBTITLES) }) {
                     Icon(
                         Icons.Filled.Subtitles,
-                        contentDescription = "Subtitles (${uiState.selectedSubtitle})",
+                        contentDescription = stringResource(R.string.player_subtitles, uiState.selectedSubtitle ?: "None"),
                         tint = if (uiState.selectedSubtitle != "None" && uiState.selectedSubtitle != null) {
                             MaterialTheme.colorScheme.primary
                         } else {
@@ -210,7 +212,7 @@ fun PlayerControlsOverlay(
                 IconButton(onClick = onTogglePip) {
                     Icon(
                         Icons.Filled.PictureInPictureAlt,
-                        contentDescription = "Picture in picture",
+                        contentDescription = stringResource(R.string.picture_in_picture),
                         tint = Color.White,
                     )
                 }
@@ -229,9 +231,9 @@ fun PlayerControlsOverlay(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                Text("Subtitles")
+                                Text(stringResource(R.string.subtitles))
                                 TextButton(onClick = { onOpenDialog(PlayerDialogType.SUBTITLE_STYLE) }) {
-                                    Text("Style")
+                                    Text(stringResource(R.string.style))
                                 }
                             }
                         },
@@ -261,7 +263,7 @@ fun PlayerControlsOverlay(
                         },
                         confirmButton = {
                             TextButton(onClick = onDismissDialog) {
-                                Text("Close")
+                                Text(stringResource(R.string.close))
                             }
                         },
                     )
@@ -270,7 +272,7 @@ fun PlayerControlsOverlay(
                 PlayerDialogType.QUALITY -> {
                     AlertDialog(
                         onDismissRequest = onDismissDialog,
-                        title = { Text("Quality / Resolution") },
+                        title = { Text(stringResource(R.string.quality_resolution)) },
                         text = {
                             LazyColumn {
                                 items(resolutions) { (label, height) ->
@@ -287,7 +289,7 @@ fun PlayerControlsOverlay(
                         },
                         confirmButton = {
                             TextButton(onClick = onDismissDialog) {
-                                Text("Close")
+                                Text(stringResource(R.string.close))
                             }
                         },
                     )
@@ -302,13 +304,13 @@ fun PlayerControlsOverlay(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                Text("Playback Speed")
+                                Text(stringResource(R.string.playback_speed))
                                 if (uiState.playbackSpeed != 1.0f) {
                                     TextButton(onClick = {
                                         onSelectSpeed(1.0f)
                                         onDismissDialog()
                                     }) {
-                                        Text("Reset (1.0x)")
+                                        Text(stringResource(R.string.reset_playback_speed))
                                     }
                                 }
                             }
@@ -329,7 +331,7 @@ fun PlayerControlsOverlay(
                         },
                         confirmButton = {
                             TextButton(onClick = onDismissDialog) {
-                                Text("Close")
+                                Text(stringResource(R.string.close))
                             }
                         },
                     )
@@ -339,7 +341,7 @@ fun PlayerControlsOverlay(
                     if (uiState.chapters.isNotEmpty()) {
                         AlertDialog(
                             onDismissRequest = onDismissDialog,
-                            title = { Text("Chapters") },
+                            title = { Text(stringResource(R.string.chapters)) },
                             text = {
                                 LazyColumn {
                                     items(uiState.chapters) { chapter ->
@@ -361,7 +363,7 @@ fun PlayerControlsOverlay(
                             },
                             confirmButton = {
                                 TextButton(onClick = onDismissDialog) {
-                                    Text("Close")
+                                    Text(stringResource(R.string.close))
                                 }
                             },
                         )
@@ -401,7 +403,7 @@ fun PlayerControlsOverlay(
 
                     AlertDialog(
                         onDismissRequest = onDismissDialog,
-                        title = { Text("Subtitle Styling") },
+                        title = { Text(stringResource(R.string.subtitle_styling)) },
                         text = {
                             LazyColumn {
                                 item {
@@ -464,7 +466,7 @@ fun PlayerControlsOverlay(
                         },
                         confirmButton = {
                             TextButton(onClick = onDismissDialog) {
-                                Text("Done")
+                                Text(stringResource(R.string.done))
                             }
                         },
                     )

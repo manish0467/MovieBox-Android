@@ -30,7 +30,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
 import coil.compose.AsyncImage
+import com.moviebox.app.R
 
 /**
  * Floating seek preview thumbnail shown while dragging / scrubbing playback position.
@@ -93,7 +95,7 @@ fun SeekPreviewThumbnail(
                 if (!coverUrl.isNullOrBlank()) {
                     AsyncImage(
                         model = coverUrl,
-                        contentDescription = "Seek preview thumbnail",
+                        contentDescription = stringResource(R.string.seek_preview_thumbnail),
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
                             .width(160.dp)
