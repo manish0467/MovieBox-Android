@@ -384,6 +384,8 @@ private fun HomeTabContent(
                     item {
                         val selectedIndex = DEFAULT_HOME_DECK_TABS.indexOfFirst { it.id == state.selectedHomeDeckTab }
                             .coerceAtLeast(0)
+                        // Three equal-width tabs stop fitting the longest deck
+                        // label at about 1.8, where the row starts to scroll.
                         if (LocalDensity.current.fontScale >= 1.8f) {
                             ScrollableTabRow(
                                 selectedTabIndex = selectedIndex,
@@ -396,7 +398,9 @@ private fun HomeTabContent(
                                         text = {
                                             Text(
                                                 stringResource(tab.titleRes),
+                                                style = MaterialTheme.typography.labelMedium,
                                                 maxLines = 1,
+                                                softWrap = false,
                                                 overflow = TextOverflow.Ellipsis,
                                             )
                                         },
@@ -415,7 +419,9 @@ private fun HomeTabContent(
                                         text = {
                                             Text(
                                                 stringResource(tab.titleRes),
+                                                style = MaterialTheme.typography.labelMedium,
                                                 maxLines = 1,
+                                                softWrap = false,
                                                 overflow = TextOverflow.Ellipsis,
                                             )
                                         },
