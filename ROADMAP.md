@@ -23,25 +23,22 @@ dependency on the `v0.1.28` tag.
   into the public `Movies/MovieBox` collection, so it shows up in a gallery and
   in a file manager
 - The player hides the system bars and keeps the screen awake while it plays
+- **Adaptive layouts**: the details screen shows the media information and the
+  source list side by side on a tablet, and the home and Live TV grids grow with
+  the window; the navigation labels and the deck tabs survive a large font
+  scale, and the icon buttons that have no visible label announce what they do
+- **The whole interface is localised**, the player and its dialogs included, in
+  Bengali, Hindi and Spanish: every user-visible label comes from the resources
 
-## Now — the player and the interface
+## Now — getting it onto real devices
 
-The player is a bare `PlayerView` today. These are the Media3 and Compose
-features that make it feel like a real player, in order of value:
-
-| Feature | Mechanism | Owner |
-| :--- | :--- | :--- |
-| ~~Gesture controls (brightness, volume, seek)~~ | shipped | player lane |
-| ~~Chapters and seek-to-chapter~~ | shipped | player lane |
-| ~~Playback speed 0.25–2×~~ | shipped | player lane |
-| ~~Subtitle styling (size, colour, background)~~ | shipped | player lane |
-| ~~Picture in picture, properly driven~~ | shipped | player lane |
-| ~~Background playback~~ (the media notification, the session) | shipped | player lane |
-| ~~Seek preview thumbnails~~ | shipped | player lane |
-| ~~Theme set and picker + dynamic colour~~ | shipped | design lane |
-| ~~Localisation~~ | shipped | design lane |
-| Tablet and adaptive layouts | `res/layout*` and window size classes | design lane |
-| Accessibility (TalkBack, font scaling) | semantics and a Compose pass | design lane |
+- **A test on a real phone.** Every build so far ran on an x86_64 emulator, so
+  the arm64 library inside the release APK has never executed. A physical device
+  should install the published APK and play, download and update before a build
+  is called final.
+- **Store metadata.** The key, the CI secrets and the certificate fingerprint
+  are in place; the listing itself — description, screenshots, data-safety
+  answers — is the remaining piece.
 
 ## Later
 
@@ -59,11 +56,9 @@ features that make it feel like a real player, in order of value:
   HTML providers. This is the escape hatch for a provider that changes its
   domain.
 - **Casting.** The Cast SDK plus a button on the player. This needs a Cast
-  **application id**, which is registered in the Google Cast console against a
-  package name and a signing certificate — so it waits until the app has a
-  release keystore, otherwise the registered id would not match the shipped
-  build. Everything else about casting (the SDK, the session manager, the
-  route picker) can be built before that.
+  **application id**, registered in the Google Cast console against the package
+  name and the release certificate. The keystore exists now, so the id can be
+  registered; the SDK and the route picker are what remain.
 - **Stremio addons.** The terminal client supports community addons; the app
   would need the manifest, catalog and stream providers bridged, plus a source
   picker.
