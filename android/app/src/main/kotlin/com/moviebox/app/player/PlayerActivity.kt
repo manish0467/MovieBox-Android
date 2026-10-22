@@ -201,7 +201,7 @@ class PlayerActivity : ComponentActivity() {
 
         exoPlayer.prepare()
         exoPlayer.playWhenReady = true
-        setScreenAwake(true)
+        updateScreenAwake()
         setSystemBarsVisible(false)
 
         mediaManager = PlayerMediaManager(this, exoPlayer, title, season, episode)
@@ -225,6 +225,7 @@ class PlayerActivity : ComponentActivity() {
         // Listener for player events
         exoPlayer.addListener(object : Player.Listener {
             override fun onPlaybackStateChanged(playbackState: Int) {
+                updateScreenAwake()
                 if (playbackState == Player.STATE_ENDED) {
                     features.sleep.onPlaybackEnded()
                 }
@@ -246,8 +247,7 @@ class PlayerActivity : ComponentActivity() {
             }
 
             override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
-                // A buffering video still holds the screen, a paused one does not.
-                setScreenAwake(playWhenReady)
+                updateScreenAwake()
             }
 
             override fun onPositionDiscontinuity(
@@ -530,6 +530,16 @@ class PlayerActivity : ComponentActivity() {
         }
     }
 
+    private fun updateScreenAwake() {
+        val currentPlayer = player ?: return
+        setScreenAwake(
+            shouldKeepPlayerScreenAwake(
+                playWhenReady = currentPlayer.playWhenReady,
+                playbackState = currentPlayer.playbackState,
+            ),
+        )
+    }
+
     private fun updateProgressState() {
         val p = player ?: return
         viewModel.updatePlaybackProgress(
@@ -581,6 +591,7 @@ class PlayerActivity : ComponentActivity() {
         newConfig: Configuration,
     ) {
         super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
+        updateScreenAwake()
         viewModel.setInPipMode(isInPictureInPictureMode)
         features.lock.onPipChanged(isInPictureInPictureMode)
         playerViewRef?.apply {
@@ -750,16 +761,22 @@ class PlayerActivity : ComponentActivity() {
         saveProgress()
         // The rest of the app is not fullscreen.
         setSystemBarsVisible(true)
-        setScreenAwake(false)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        updateScreenAwake()
     }
 
     override fun onStop() {
         super.onStop()
         saveProgress()
+        setScreenAwake(false)
     }
 
     override fun onDestroy() {
         saveProgress()
+        setScreenAwake(false)
         mediaManager?.release()
         mediaManager = null
         player?.release()
