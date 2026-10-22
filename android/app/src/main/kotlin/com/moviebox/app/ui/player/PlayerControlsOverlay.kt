@@ -33,7 +33,7 @@ fun PlayerControlsOverlay(
     onSelectSpeed: (Float) -> Unit,
     onSeekToChapter: (PlayerChapter) -> Unit,
     onUpdateSubtitleStyle: (textSizeSp: Float, textColor: Int, backgroundColor: Int) -> Unit,
-    onDragStart: (GestureType, startX: Float, startY: Float) -> Unit,
+    onDragStart: (GestureType, startX: Float, startY: Float, surfaceWidthPx: Float) -> Unit,
     onDragStep: (GestureType, deltaX: Float, deltaY: Float, totalX: Float, totalY: Float) -> Unit,
     onDragEnd: (GestureType) -> Unit,
     onTapSurface: () -> Unit,

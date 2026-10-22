@@ -80,7 +80,7 @@ data class GestureHudState(
  */
 fun Modifier.playerSurfaceGestures(
     enabled: Boolean = true,
-    onDragStart: (GestureType, startX: Float, startY: Float) -> Unit,
+    onDragStart: (GestureType, startX: Float, startY: Float, surfaceWidthPx: Float) -> Unit,
     onDragStep: (GestureType, deltaX: Float, deltaY: Float, totalX: Float, totalY: Float) -> Unit,
     onDragEnd: (GestureType) -> Unit,
     onTap: () -> Unit,
@@ -135,7 +135,7 @@ fun Modifier.playerSurfaceGestures(
                         } else {
                             GestureType.VOLUME
                         }
-                        onDragStart(activeGesture, startX, startY)
+                        onDragStart(activeGesture, startX, startY, screenWidth.toFloat())
                     }
                 }
 

@@ -55,6 +55,7 @@ import com.moviebox.app.ui.player.GestureType
 import com.moviebox.app.ui.player.PlayerChapter
 import com.moviebox.app.ui.player.PlayerControlsOverlay
 import com.moviebox.app.ui.player.PlayerDialogType
+import com.moviebox.app.ui.player.PlayerSeekDragMapper
 import com.moviebox.app.ui.player.PlayerViewModel
 import com.moviebox.app.ui.theme.MovieBoxTheme
 import kotlinx.coroutines.Dispatchers
@@ -104,8 +105,7 @@ class PlayerActivity : ComponentActivity() {
     private var startBrightness: Float = 0.5f
     private var startVolume: Int = 0
     private var maxVolume: Int = 1
-    private var startSeekPositionMs: Long = 0L
-    private var currentSeekTargetMs: Long? = null
+    private var seekDragMapper: PlayerSeekDragMapper? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -359,11 +359,11 @@ class PlayerActivity : ComponentActivity() {
                             PlayerSessionPreferences.subtitleBackgroundColor = backgroundColor
                             applySubtitleStyle()
                         },
-                        onDragStart = { gesture, startX, startY ->
-                            handleGestureStart(gesture)
+                        onDragStart = { gesture, startX, startY, surfaceWidthPx ->
+                            handleGestureStart(gesture, surfaceWidthPx)
                         },
                         onDragStep = { gesture, deltaX, deltaY, totalDx, totalDy ->
-                            handleGestureStep(gesture, totalDx, totalDy)
+                            handleGestureStep(gesture, deltaX, deltaY, totalDx, totalDy)
                         },
                         onDragEnd = { gesture ->
                             handleGestureEnd(gesture)
@@ -394,7 +394,7 @@ class PlayerActivity : ComponentActivity() {
         }
     }
 
-    private fun handleGestureStart(gesture: GestureType) {
+    private fun handleGestureStart(gesture: GestureType, surfaceWidthPx: Float) {
         when (gesture) {
             GestureType.BRIGHTNESS -> {
                 val current = window.attributes.screenBrightness
@@ -406,16 +406,21 @@ class PlayerActivity : ComponentActivity() {
                 maxVolume = am.getStreamMaxVolume(AudioManager.STREAM_MUSIC).coerceAtLeast(1)
             }
             GestureType.SEEK -> {
-                startSeekPositionMs = player?.currentPosition ?: 0L
-                currentSeekTargetMs = startSeekPositionMs
+                val currentPlayer = player
+                if (currentPlayer != null && currentPlayer.duration > 0L) {
+                    seekDragMapper = PlayerSeekDragMapper(
+                        startPositionMs = currentPlayer.currentPosition,
+                        durationMs = currentPlayer.duration,
+                        surfaceWidthPx = surfaceWidthPx,
+                    )
+                }
             }
         }
     }
 
-    private fun handleGestureStep(gesture: GestureType, totalDx: Float, totalDy: Float) {
+    private fun handleGestureStep(gesture: GestureType, deltaX: Float, deltaY: Float, totalDx: Float, totalDy: Float) {
         val dm = resources.displayMetrics
         val screenHeight = dm.heightPixels.toFloat().coerceAtLeast(1f)
-        val screenWidth = dm.widthPixels.toFloat().coerceAtLeast(1f)
 
         when (gesture) {
             GestureType.BRIGHTNESS -> {
@@ -469,20 +474,19 @@ class PlayerActivity : ComponentActivity() {
             }
 
             GestureType.SEEK -> {
-                val duration = player?.duration ?: 0L
-                val scrubWindowMs = 90_000L.coerceAtLeast(if (duration > 0) (duration * 0.15f).toLong() else 90_000L)
-                val deltaMs = ((totalDx / screenWidth) * scrubWindowMs).toLong()
-                val targetMs = (startSeekPositionMs + deltaMs).coerceIn(0L, duration.coerceAtLeast(0L))
-                currentSeekTargetMs = targetMs
+                val mapper = seekDragMapper ?: return
+                val targetMs = mapper.addDragDelta(deltaX)
                 viewModel.setSeekScrubPosition(targetMs)
 
-                val absDeltaSec = abs(deltaMs) / 1000
-                val deltaSign = if (deltaMs >= 0) "+" else "-"
+                val totalDeltaMs = targetMs - mapper.startPositionMs
+                val absDeltaSec = abs(totalDeltaMs) / 1000
+                val deltaSign = if (totalDeltaMs >= 0) "+" else "-"
                 val deltaStr = String.format("%s%02d:%02d", deltaSign, absDeltaSec / 60, absDeltaSec % 60)
 
                 val targetSec = targetMs / 1000
                 val targetStr = String.format("%02d:%02d", targetSec / 60, targetSec % 60)
-                val icon = if (deltaMs >= 0) GestureIconType.SEEK_FORWARD else GestureIconType.SEEK_REWIND
+                val icon = if (totalDeltaMs >= 0) GestureIconType.SEEK_FORWARD else GestureIconType.SEEK_REWIND
+                val duration = player?.duration ?: 0L
                 val percent = if (duration > 0) ((targetMs * 100) / duration).toInt() else 0
 
                 viewModel.showGestureHud(
@@ -500,8 +504,8 @@ class PlayerActivity : ComponentActivity() {
 
     private fun handleGestureEnd(gesture: GestureType) {
         if (gesture == GestureType.SEEK) {
-            currentSeekTargetMs?.let { player?.seekTo(it) }
-            currentSeekTargetMs = null
+            seekDragMapper?.targetPositionMs?.let { player?.seekTo(it) }
+            seekDragMapper = null
             viewModel.setSeekScrubPosition(null)
         }
         viewModel.hideGestureHudDelayed(800L)
