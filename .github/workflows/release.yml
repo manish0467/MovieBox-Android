@@ -5,6 +5,14 @@ name: Release
 # the version code of the installed app.
 on:
   workflow_dispatch:
+    # A manual run builds and verifies exactly what a tag would build, then
+    # stops before the release step. `inputs` is empty for a tag push, so the
+    # publish step below still runs there.
+    inputs:
+      dry_run:
+        description: Build and verify the signing, do not publish a release.
+        type: boolean
+        default: false
   push:
     tags: ['android-preview-*']
 
@@ -130,6 +138,9 @@ jobs:
               ;;
           esac
       - name: Publish the release
+        # `inputs` is empty on a tag push, so this is true there and the release
+        # step runs as before; only `-f dry_run=true` skips it.
+        if: ${{ !inputs.dry_run }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
