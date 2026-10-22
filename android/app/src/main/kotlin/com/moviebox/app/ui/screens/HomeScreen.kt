@@ -7,6 +7,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -18,6 +19,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -59,6 +61,7 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Tab
@@ -81,6 +84,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalDensity
 import com.moviebox.app.R
 import coil.compose.AsyncImage
 import com.moviebox.app.core.CatalogItem
@@ -123,6 +127,19 @@ fun HomeScreen(
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     var showAppearance by remember { mutableStateOf(false) }
+    val compactNavigation = LocalDensity.current.fontScale >= 1.8f
+    val homeNavigationLabel: (@Composable () -> Unit)? = if (compactNavigation) null else {
+        { Text(stringResource(R.string.home), style = MaterialTheme.typography.labelSmall, maxLines = 1, softWrap = false) }
+    }
+    val favoritesNavigationLabel: (@Composable () -> Unit)? = if (compactNavigation) null else {
+        { Text(stringResource(R.string.favorites), style = MaterialTheme.typography.labelSmall, maxLines = 1, softWrap = false) }
+    }
+    val historyNavigationLabel: (@Composable () -> Unit)? = if (compactNavigation) null else {
+        { Text(stringResource(R.string.history), style = MaterialTheme.typography.labelSmall, maxLines = 1, softWrap = false) }
+    }
+    val downloadsNavigationLabel: (@Composable () -> Unit)? = if (compactNavigation) null else {
+        { Text(stringResource(R.string.downloads), style = MaterialTheme.typography.labelSmall, maxLines = 1, softWrap = false) }
+    }
 
     LaunchedEffect(state.error) {
         state.error?.let { snackbarHostState.showSnackbar(it) }
@@ -168,6 +185,8 @@ fun HomeScreen(
                             MainTab.DOWNLOADS -> stringResource(R.string.downloads)
                         },
                         fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 },
             )
@@ -177,54 +196,26 @@ fun HomeScreen(
                 NavigationBarItem(
                     selected = state.selectedTab == MainTab.HOME,
                     onClick = { onSelectMainTab(MainTab.HOME) },
-                    icon = { Icon(Icons.Filled.Home, contentDescription = stringResource(R.string.home)) },
-                    label = {
-                        Text(
-                            stringResource(R.string.home),
-                            style = MaterialTheme.typography.labelSmall,
-                            maxLines = 1,
-                            softWrap = false,
-                        )
-                    },
+                    icon = { Icon(Icons.Filled.Home, contentDescription = if (compactNavigation) stringResource(R.string.home) else null) },
+                    label = homeNavigationLabel,
                 )
                 NavigationBarItem(
                     selected = state.selectedTab == MainTab.FAVORITES,
                     onClick = { onSelectMainTab(MainTab.FAVORITES) },
-                    icon = { Icon(Icons.Filled.Favorite, contentDescription = stringResource(R.string.favorites)) },
-                    label = {
-                        Text(
-                            stringResource(R.string.favorites),
-                            style = MaterialTheme.typography.labelSmall,
-                            maxLines = 1,
-                            softWrap = false,
-                        )
-                    },
+                    icon = { Icon(Icons.Filled.Favorite, contentDescription = if (compactNavigation) stringResource(R.string.favorites) else null) },
+                    label = favoritesNavigationLabel,
                 )
                 NavigationBarItem(
                     selected = state.selectedTab == MainTab.HISTORY,
                     onClick = { onSelectMainTab(MainTab.HISTORY) },
-                    icon = { Icon(Icons.Filled.History, contentDescription = stringResource(R.string.history)) },
-                    label = {
-                        Text(
-                            stringResource(R.string.history),
-                            style = MaterialTheme.typography.labelSmall,
-                            maxLines = 1,
-                            softWrap = false,
-                        )
-                    },
+                    icon = { Icon(Icons.Filled.History, contentDescription = if (compactNavigation) stringResource(R.string.history) else null) },
+                    label = historyNavigationLabel,
                 )
                 NavigationBarItem(
                     selected = state.selectedTab == MainTab.DOWNLOADS,
                     onClick = { onSelectMainTab(MainTab.DOWNLOADS) },
-                    icon = { Icon(Icons.Filled.Download, contentDescription = stringResource(R.string.downloads)) },
-                    label = {
-                        Text(
-                            stringResource(R.string.downloads),
-                            style = MaterialTheme.typography.labelSmall,
-                            maxLines = 1,
-                            softWrap = false,
-                        )
-                    },
+                    icon = { Icon(Icons.Filled.Download, contentDescription = if (compactNavigation) stringResource(R.string.downloads) else null) },
+                    label = downloadsNavigationLabel,
                 )
             }
         },
@@ -335,21 +326,24 @@ private fun HomeTabContent(
             if (state.results.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text(
-                        text = "No results for \"${state.query}\"",
+                        text = stringResource(R.string.no_results_for, state.query),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             } else {
-                LazyVerticalGrid(
-                    columns = GridCells.Adaptive(minSize = 120.dp),
-                    contentPadding = PaddingValues(12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.fillMaxSize(),
-                ) {
-                    items(state.results, key = { it.id.provider + "/" + it.id.value }) { item ->
-                        PosterCard(item = item, onClick = { onOpenItem(item) })
+                BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+                    val minimumPosterSize = if (maxWidth >= 840.dp) 180.dp else 120.dp
+                    LazyVerticalGrid(
+                        columns = GridCells.Adaptive(minSize = minimumPosterSize),
+                        contentPadding = PaddingValues(12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.fillMaxSize(),
+                    ) {
+                        items(state.results, key = { it.id.provider + "/" + it.id.value }) { item ->
+                            PosterCard(item = item, onClick = { onOpenItem(item) })
+                        }
                     }
                 }
             }
@@ -363,7 +357,7 @@ private fun HomeTabContent(
                 if (state.continueWatching.isNotEmpty()) {
                     item {
                         Text(
-                            text = "Continue Watching",
+                            text = stringResource(R.string.continue_watching),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 8.dp),
@@ -390,16 +384,51 @@ private fun HomeTabContent(
                     item {
                         val selectedIndex = DEFAULT_HOME_DECK_TABS.indexOfFirst { it.id == state.selectedHomeDeckTab }
                             .coerceAtLeast(0)
-                        TabRow(
-                            selectedTabIndex = selectedIndex,
-                            modifier = Modifier.padding(horizontal = 16.dp),
-                        ) {
-                            DEFAULT_HOME_DECK_TABS.forEachIndexed { index, tab ->
-                                Tab(
-                                    selected = selectedIndex == index,
-                                    onClick = { onSelectHomeDeckTab(tab.id) },
-                                    text = { Text(stringResource(tab.titleRes)) },
-                                )
+                        // Equal-width tabs stop fitting the longest deck label as
+                        // soon as the text is scaled; past that, let the tabs
+                        // size to their content so no locale gets truncated.
+                        if (LocalDensity.current.fontScale > 1.15f) {
+                            ScrollableTabRow(
+                                selectedTabIndex = selectedIndex,
+                                modifier = Modifier.padding(horizontal = 16.dp),
+                                edgePadding = 0.dp,
+                            ) {
+                                DEFAULT_HOME_DECK_TABS.forEachIndexed { index, tab ->
+                                    Tab(
+                                        selected = selectedIndex == index,
+                                        onClick = { onSelectHomeDeckTab(tab.id) },
+                                        text = {
+                                            Text(
+                                                stringResource(tab.titleRes),
+                                                style = MaterialTheme.typography.labelMedium,
+                                                maxLines = 1,
+                                                softWrap = false,
+                                                overflow = TextOverflow.Ellipsis,
+                                            )
+                                        },
+                                    )
+                                }
+                            }
+                        } else {
+                            TabRow(
+                                selectedTabIndex = selectedIndex,
+                                modifier = Modifier.padding(horizontal = 16.dp),
+                            ) {
+                                DEFAULT_HOME_DECK_TABS.forEachIndexed { index, tab ->
+                                    Tab(
+                                        selected = selectedIndex == index,
+                                        onClick = { onSelectHomeDeckTab(tab.id) },
+                                        text = {
+                                            Text(
+                                                stringResource(tab.titleRes),
+                                                style = MaterialTheme.typography.labelMedium,
+                                                maxLines = 1,
+                                                softWrap = false,
+                                                overflow = TextOverflow.Ellipsis,
+                                            )
+                                        },
+                                    )
+                                }
                             }
                         }
                         Spacer(modifier = Modifier.height(12.dp))
@@ -420,20 +449,33 @@ private fun HomeTabContent(
                         // Chunk homepage items in pairs for 2-column layout in LazyColumn
                         val chunked = state.homepageItems.chunked(3)
                         items(chunked) { rowItems ->
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 12.dp, vertical = 6.dp),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            ) {
-                                rowItems.forEach { item ->
-                                    Box(modifier = Modifier.weight(1f)) {
-                                        PosterCard(item = item, onClick = { onOpenItem(item) })
+                            BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                                val wide = maxWidth >= 840.dp
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                                    horizontalArrangement = if (wide) {
+                                        Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally)
+                                    } else {
+                                        Arrangement.spacedBy(12.dp)
+                                    },
+                                ) {
+                                    rowItems.forEach { item ->
+                                        val posterModifier = if (wide) {
+                                            Modifier.weight(1f, fill = false).widthIn(max = 240.dp)
+                                        } else {
+                                            Modifier.weight(1f)
+                                        }
+                                        Box(modifier = posterModifier) {
+                                            PosterCard(item = item, onClick = { onOpenItem(item) })
+                                        }
                                     }
-                                }
-                                // Padding if row is incomplete
-                                repeat(3 - rowItems.size) {
-                                    Spacer(modifier = Modifier.weight(1f))
+                                    if (!wide) {
+                                        repeat(3 - rowItems.size) {
+                                            Spacer(modifier = Modifier.weight(1f))
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -448,13 +490,13 @@ private fun HomeTabContent(
                             horizontalAlignment = Alignment.CenterHorizontally,
                         ) {
                             Text(
-                                text = "Search ${state.activeProviderInfo?.label ?: "provider"}",
+                                text = stringResource(R.string.search_provider, state.activeProviderInfo?.label ?: "provider"),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                             )
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
-                                text = "Explore titles with fast mirrors and streaming.",
+                                text = stringResource(R.string.explore_hint),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -524,41 +566,44 @@ private fun FavoritesTabContent(
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
-                    text = "No favorites yet",
+                    text = stringResource(R.string.no_favorites),
                     style = MaterialTheme.typography.titleMedium,
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Tap the heart icon on any movie or series to save it here.",
+                    text = stringResource(R.string.favorites_empty_hint),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
     } else {
-        LazyVerticalGrid(
-            columns = GridCells.Adaptive(minSize = 120.dp),
-            contentPadding = PaddingValues(12.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.fillMaxSize(),
-        ) {
-            items(state.favorites, key = { it.provider + "/" + it.subjectId }) { item ->
-                FavoriteCard(
-                    item = item,
-                    onClick = {
-                        onOpenItem(
-                            CatalogItem(
-                                id = ProviderMediaId(item.provider, item.subjectId),
-                                title = item.title,
-                                mediaType = if (item.isSeries) "series" else "movie",
-                                year = item.releaseYear,
-                                posterUrl = item.coverUrl,
-                            ),
-                        )
-                    },
-                    onRemove = { onToggleFavorite(item) },
-                )
+        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+            val minimumPosterSize = if (maxWidth >= 840.dp) 180.dp else 120.dp
+            LazyVerticalGrid(
+                columns = GridCells.Adaptive(minSize = minimumPosterSize),
+                contentPadding = PaddingValues(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxSize(),
+            ) {
+                items(state.favorites, key = { it.provider + "/" + it.subjectId }) { item ->
+                    FavoriteCard(
+                        item = item,
+                        onClick = {
+                            onOpenItem(
+                                CatalogItem(
+                                    id = ProviderMediaId(item.provider, item.subjectId),
+                                    title = item.title,
+                                    mediaType = if (item.isSeries) "series" else "movie",
+                                    year = item.releaseYear,
+                                    posterUrl = item.coverUrl,
+                                ),
+                            )
+                        },
+                        onRemove = { onToggleFavorite(item) },
+                    )
+                }
             }
         }
     }
@@ -589,12 +634,12 @@ private fun HistoryTabContent(
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
-                    text = "No watch history",
+                    text = stringResource(R.string.no_history),
                     style = MaterialTheme.typography.titleMedium,
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Movies and episodes you play will appear here.",
+                    text = stringResource(R.string.history_empty_hint),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -645,7 +690,7 @@ private fun ContinueWatchingCard(item: WatchHistoryItem, onClick: () -> Unit) {
                 ) {
                     Icon(
                         Icons.Filled.PlayArrow,
-                        contentDescription = "Resume",
+                        contentDescription = stringResource(R.string.resume),
                         tint = Color.White,
                         modifier = Modifier.size(24.dp),
                     )
@@ -665,7 +710,7 @@ private fun ContinueWatchingCard(item: WatchHistoryItem, onClick: () -> Unit) {
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                val label = if (item.isSeries) "S${item.season}:E${item.episode}" else "Movie"
+                val label = if (item.isSeries) "S${item.season}:E${item.episode}" else stringResource(R.string.movie)
                 Text(
                     text = label,
                     style = MaterialTheme.typography.labelSmall,
@@ -729,7 +774,7 @@ private fun HistoryRow(item: WatchHistoryItem, onClick: () -> Unit) {
         }
         Spacer(modifier = Modifier.width(8.dp))
         Button(onClick = onClick) {
-            Text("Resume")
+            Text(stringResource(R.string.resume))
         }
     }
 }
@@ -772,7 +817,7 @@ private fun FavoriteCard(
             ) {
                 Icon(
                     Icons.Filled.Favorite,
-                    contentDescription = "Remove favorite",
+                    contentDescription = stringResource(R.string.remove_favorite),
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(16.dp),
                 )
@@ -876,12 +921,12 @@ private fun DownloadsTabContent(
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = "No downloads yet",
+                    text = stringResource(R.string.no_downloads),
                     style = MaterialTheme.typography.titleMedium,
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Find a title and tap Download next to any source stream",
+                    text = stringResource(R.string.downloads_empty_hint),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center,
@@ -940,7 +985,7 @@ private fun DownloadJobCard(
                             if (job.isSeries) {
                                 append("S${job.season}:E${job.episode}")
                             } else {
-                                append("Movie")
+                                append(stringResource(R.string.movie))
                             }
                             if (job.provider.isNotBlank()) {
                                 append(" · ").append(job.provider)
@@ -953,11 +998,11 @@ private fun DownloadJobCard(
                 Spacer(modifier = Modifier.width(8.dp))
                 // State Badge
                 val (stateText, stateColor) = when {
-                    job.isCompleted -> "Completed" to Color(0xFF4CAF50)
-                    job.isRunning -> "Running" to MaterialTheme.colorScheme.primary
-                    job.isPaused -> "Paused" to Color(0xFFFFA000)
-                    job.isFailed -> "Failed" to MaterialTheme.colorScheme.error
-                    else -> "Queued" to MaterialTheme.colorScheme.secondary
+                    job.isCompleted -> stringResource(R.string.status_completed) to Color(0xFF4CAF50)
+                    job.isRunning -> stringResource(R.string.status_running) to MaterialTheme.colorScheme.primary
+                    job.isPaused -> stringResource(R.string.status_paused) to Color(0xFFFFA000)
+                    job.isFailed -> stringResource(R.string.status_failed) to MaterialTheme.colorScheme.error
+                    else -> stringResource(R.string.status_queued) to MaterialTheme.colorScheme.secondary
                 }
                 Box(
                     modifier = Modifier
@@ -1042,46 +1087,46 @@ private fun DownloadJobCard(
                 when {
                     job.isRunning -> {
                         OutlinedButton(onClick = onPause) {
-                            Icon(Icons.Filled.Pause, contentDescription = "Pause", modifier = Modifier.size(16.dp))
+                            Icon(Icons.Filled.Pause, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("Pause")
+                            Text(stringResource(R.string.pause))
                         }
                         Spacer(modifier = Modifier.width(8.dp))
                         IconButton(onClick = onRemove) {
-                            Icon(Icons.Filled.Delete, contentDescription = "Cancel & Remove", tint = MaterialTheme.colorScheme.error)
+                            Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.cancel_remove), tint = MaterialTheme.colorScheme.error)
                         }
                     }
                     job.isPaused -> {
                         Button(onClick = onResume) {
-                            Icon(Icons.Filled.PlayArrow, contentDescription = "Resume", modifier = Modifier.size(16.dp))
+                            Icon(Icons.Filled.PlayArrow, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("Resume")
+                            Text(stringResource(R.string.resume))
                         }
                         Spacer(modifier = Modifier.width(8.dp))
                         IconButton(onClick = onRemove) {
-                            Icon(Icons.Filled.Delete, contentDescription = "Remove", tint = MaterialTheme.colorScheme.error)
+                            Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.remove), tint = MaterialTheme.colorScheme.error)
                         }
                     }
                     job.isFailed -> {
                         Button(onClick = onResume) {
-                            Icon(Icons.Filled.Refresh, contentDescription = "Retry", modifier = Modifier.size(16.dp))
+                            Icon(Icons.Filled.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("Retry")
+                            Text(stringResource(R.string.retry))
                         }
                         Spacer(modifier = Modifier.width(8.dp))
                         IconButton(onClick = onRemove) {
-                            Icon(Icons.Filled.Delete, contentDescription = "Remove", tint = MaterialTheme.colorScheme.error)
+                            Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.remove), tint = MaterialTheme.colorScheme.error)
                         }
                     }
                     job.isCompleted -> {
                         Button(onClick = onOpen) {
-                            Icon(Icons.Filled.PlayArrow, contentDescription = "Play", modifier = Modifier.size(16.dp))
+                            Icon(Icons.Filled.PlayArrow, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("Open")
+                            Text(stringResource(R.string.open))
                         }
                         Spacer(modifier = Modifier.width(8.dp))
                         IconButton(onClick = onRemove) {
-                            Icon(Icons.Filled.Delete, contentDescription = "Remove from list", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.remove_from_list), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }

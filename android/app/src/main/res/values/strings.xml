@@ -17,6 +17,30 @@
     <string name="theme_dark">Dark</string><string name="theme_oled">OLED black</string>
     <string name="theme_blue">Blue</string><string name="theme_green">Green</string><string name="theme_rose">Rose</string>
     <string name="director">Director: %1$s</string><string name="episode_number">Episode %1$d</string>
+    <string name="season_episode">Season %1$d · Episode %2$d</string><string name="none_off">None (Off)</string>
+    <string name="auto">Auto</string>
+    <string name="subtitle_text_size">Text size</string><string name="subtitle_text_colour">Text colour</string>
+    <string name="subtitle_background_colour">Background colour</string>
+    <string name="size_small">Small (14sp)</string><string name="size_medium">Medium (18sp)</string>
+    <string name="size_large">Large (24sp)</string><string name="size_extra_large">Extra large (30sp)</string>
+    <string name="colour_white">White</string><string name="colour_yellow">Yellow</string>
+    <string name="colour_cyan">Cyan</string><string name="colour_green">Green</string>
+    <string name="background_transparent">None (transparent)</string>
+    <string name="background_semi_transparent_black">Semi-transparent black</string>
+    <string name="background_solid_black">Solid black</string>
+    <string name="all">All</string>
+    <string name="downloads_empty_hint">Find a title and tap Download next to any source stream</string>
+    <string name="status_completed">Completed</string><string name="status_running">Running</string>
+    <string name="status_paused">Paused</string><string name="status_failed">Failed</string>
+    <string name="status_queued">Queued</string>
+    <string name="search_provider">Search %1$s</string>
+    <string name="explore_hint">Explore titles with fast mirrors and streaming.</string>
+    <string name="favorites_empty_hint">Tap the heart icon on any movie or series to save it here.</string>
+    <string name="history_empty_hint">Movies and episodes you play will appear here.</string>
+    <string name="no_sources_available">No sources available</string>
+    <string name="no_sources_matching">No sources matching resolution %1$s</string>
+    <string name="no_results_for">No results for &quot;%1$s&quot;</string>
+    <string name="of">of %1$s</string>
 
     <string name="appearance">Appearance</string>
     <string name="close">Close</string>
@@ -48,4 +72,22 @@
     <string name="deck_featured">Featured</string>
     <string name="deck_movies">Movies</string>
     <string name="deck_series">Series</string>
+    <string name="pause">Pause</string>
+    <string name="retry">Retry</string>
+    <string name="open">Open</string>
+    <string name="cancel_remove">Cancel &amp; Remove</string>
+    <string name="remove_from_list">Remove from list</string>
+    <string name="season_chip">S%1$d</string>
+    <string name="chapters">Chapters</string>
+    <string name="speed">Speed</string>
+    <string name="style">Style</string>
+    <string name="quality_resolution">Quality / Resolution</string>
+    <string name="playback_speed">Playback Speed</string>
+    <string name="reset_playback_speed">Reset (1.0x)</string>
+    <string name="subtitle_styling">Subtitle Styling</string>
+    <string name="done">Done</string>
+    <string name="picture_in_picture">Picture in picture</string>
+    <string name="seek_preview_thumbnail">Seek preview thumbnail</string>
+    <string name="player_resolution">Resolution (%1$s)</string>
+    <string name="player_subtitles">Subtitles (%1$s)</string>
 </resources>

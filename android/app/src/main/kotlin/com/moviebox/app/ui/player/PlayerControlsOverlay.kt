@@ -43,6 +43,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.moviebox.app.R
 import com.moviebox.app.core.SubtitleOption
 
 /**
@@ -126,7 +128,7 @@ fun PlayerControlsOverlay(
                 IconButton(onClick = onBack) {
                     Icon(
                         Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back",
+                        contentDescription = stringResource(R.string.back),
                         tint = Color.White,
                     )
                 }
@@ -141,7 +143,7 @@ fun PlayerControlsOverlay(
                     )
                     if (uiState.season > 0 || uiState.episode > 0) {
                         Text(
-                            text = "Season ${uiState.season} · Episode ${uiState.episode}",
+                            text = stringResource(R.string.season_episode, uiState.season, uiState.episode),
                             style = MaterialTheme.typography.labelSmall,
                             color = Color.LightGray,
                         )
@@ -153,7 +155,7 @@ fun PlayerControlsOverlay(
                     IconButton(onClick = { onOpenDialog(PlayerDialogType.CHAPTERS) }) {
                         Icon(
                             Icons.Filled.VideoLibrary,
-                            contentDescription = "Chapters",
+                            contentDescription = stringResource(R.string.chapters),
                             tint = Color.White,
                         )
                     }
@@ -171,7 +173,7 @@ fun PlayerControlsOverlay(
                     ) {
                         Icon(
                             Icons.Filled.Speed,
-                            contentDescription = "Speed",
+                            contentDescription = stringResource(R.string.speed),
                             tint = if (uiState.playbackSpeed != 1.0f) MaterialTheme.colorScheme.primary else Color.White,
                             modifier = Modifier.padding(end = 4.dp),
                         )
@@ -188,7 +190,7 @@ fun PlayerControlsOverlay(
                 IconButton(onClick = { onOpenDialog(PlayerDialogType.QUALITY) }) {
                     Icon(
                         Icons.Filled.HighQuality,
-                        contentDescription = "Resolution (${uiState.selectedResolution})",
+                        contentDescription = stringResource(R.string.player_resolution, if (uiState.selectedResolution == "Auto") stringResource(R.string.auto) else uiState.selectedResolution),
                         tint = if (uiState.selectedResolution != "Auto") MaterialTheme.colorScheme.primary else Color.White,
                     )
                 }
@@ -197,7 +199,7 @@ fun PlayerControlsOverlay(
                 IconButton(onClick = { onOpenDialog(PlayerDialogType.SUBTITLES) }) {
                     Icon(
                         Icons.Filled.Subtitles,
-                        contentDescription = "Subtitles (${uiState.selectedSubtitle})",
+                        contentDescription = stringResource(R.string.player_subtitles, uiState.selectedSubtitle ?: stringResource(R.string.none)),
                         tint = if (uiState.selectedSubtitle != "None" && uiState.selectedSubtitle != null) {
                             MaterialTheme.colorScheme.primary
                         } else {
@@ -210,7 +212,7 @@ fun PlayerControlsOverlay(
                 IconButton(onClick = onTogglePip) {
                     Icon(
                         Icons.Filled.PictureInPictureAlt,
-                        contentDescription = "Picture in picture",
+                        contentDescription = stringResource(R.string.picture_in_picture),
                         tint = Color.White,
                     )
                 }
@@ -229,9 +231,9 @@ fun PlayerControlsOverlay(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                Text("Subtitles")
+                                Text(stringResource(R.string.subtitles))
                                 TextButton(onClick = { onOpenDialog(PlayerDialogType.SUBTITLE_STYLE) }) {
-                                    Text("Style")
+                                    Text(stringResource(R.string.style))
                                 }
                             }
                         },
@@ -239,7 +241,7 @@ fun PlayerControlsOverlay(
                             LazyColumn {
                                 item {
                                     DialogOptionRow(
-                                        title = "None (Off)",
+                                        title = stringResource(R.string.none_off),
                                         selected = uiState.selectedSubtitle == null || uiState.selectedSubtitle == "None",
                                         onClick = {
                                             onSelectSubtitle(null)
@@ -261,7 +263,7 @@ fun PlayerControlsOverlay(
                         },
                         confirmButton = {
                             TextButton(onClick = onDismissDialog) {
-                                Text("Close")
+                                Text(stringResource(R.string.close))
                             }
                         },
                     )
@@ -270,12 +272,12 @@ fun PlayerControlsOverlay(
                 PlayerDialogType.QUALITY -> {
                     AlertDialog(
                         onDismissRequest = onDismissDialog,
-                        title = { Text("Quality / Resolution") },
+                        title = { Text(stringResource(R.string.quality_resolution)) },
                         text = {
                             LazyColumn {
                                 items(resolutions) { (label, height) ->
                                     DialogOptionRow(
-                                        title = label,
+                                        title = if (label == "Auto") stringResource(R.string.auto) else label,
                                         selected = uiState.selectedResolution == label,
                                         onClick = {
                                             onSelectResolution(label, height)
@@ -287,7 +289,7 @@ fun PlayerControlsOverlay(
                         },
                         confirmButton = {
                             TextButton(onClick = onDismissDialog) {
-                                Text("Close")
+                                Text(stringResource(R.string.close))
                             }
                         },
                     )
@@ -302,13 +304,13 @@ fun PlayerControlsOverlay(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                Text("Playback Speed")
+                                Text(stringResource(R.string.playback_speed))
                                 if (uiState.playbackSpeed != 1.0f) {
                                     TextButton(onClick = {
                                         onSelectSpeed(1.0f)
                                         onDismissDialog()
                                     }) {
-                                        Text("Reset (1.0x)")
+                                        Text(stringResource(R.string.reset_playback_speed))
                                     }
                                 }
                             }
@@ -329,7 +331,7 @@ fun PlayerControlsOverlay(
                         },
                         confirmButton = {
                             TextButton(onClick = onDismissDialog) {
-                                Text("Close")
+                                Text(stringResource(R.string.close))
                             }
                         },
                     )
@@ -339,7 +341,7 @@ fun PlayerControlsOverlay(
                     if (uiState.chapters.isNotEmpty()) {
                         AlertDialog(
                             onDismissRequest = onDismissDialog,
-                            title = { Text("Chapters") },
+                            title = { Text(stringResource(R.string.chapters)) },
                             text = {
                                 LazyColumn {
                                     items(uiState.chapters) { chapter ->
@@ -361,7 +363,7 @@ fun PlayerControlsOverlay(
                             },
                             confirmButton = {
                                 TextButton(onClick = onDismissDialog) {
-                                    Text("Close")
+                                    Text(stringResource(R.string.close))
                                 }
                             },
                         )
@@ -372,21 +374,21 @@ fun PlayerControlsOverlay(
 
                 PlayerDialogType.SUBTITLE_STYLE -> {
                     val fontSizes = listOf(
-                        "Small (14sp)" to 14f,
-                        "Medium (18sp)" to 18f,
-                        "Large (24sp)" to 24f,
-                        "Extra Large (30sp)" to 30f,
+                        stringResource(R.string.size_small) to 14f,
+                        stringResource(R.string.size_medium) to 18f,
+                        stringResource(R.string.size_large) to 24f,
+                        stringResource(R.string.size_extra_large) to 30f,
                     )
                     val fontColors = listOf(
-                        "White" to android.graphics.Color.WHITE,
-                        "Yellow" to android.graphics.Color.YELLOW,
-                        "Cyan" to android.graphics.Color.CYAN,
-                        "Green" to android.graphics.Color.GREEN,
+                        stringResource(R.string.colour_white) to android.graphics.Color.WHITE,
+                        stringResource(R.string.colour_yellow) to android.graphics.Color.YELLOW,
+                        stringResource(R.string.colour_cyan) to android.graphics.Color.CYAN,
+                        stringResource(R.string.colour_green) to android.graphics.Color.GREEN,
                     )
                     val bgColors = listOf(
-                        "None (Transparent)" to android.graphics.Color.TRANSPARENT,
-                        "Semi-transparent Black" to android.graphics.Color.argb(128, 0, 0, 0),
-                        "Solid Black" to android.graphics.Color.BLACK,
+                        stringResource(R.string.background_transparent) to android.graphics.Color.TRANSPARENT,
+                        stringResource(R.string.background_semi_transparent_black) to android.graphics.Color.argb(128, 0, 0, 0),
+                        stringResource(R.string.background_solid_black) to android.graphics.Color.BLACK,
                     )
 
                     var currentSize by androidx.compose.runtime.remember {
@@ -401,12 +403,12 @@ fun PlayerControlsOverlay(
 
                     AlertDialog(
                         onDismissRequest = onDismissDialog,
-                        title = { Text("Subtitle Styling") },
+                        title = { Text(stringResource(R.string.subtitle_styling)) },
                         text = {
                             LazyColumn {
                                 item {
                                     Text(
-                                        text = "Text Size",
+                                        text = stringResource(R.string.subtitle_text_size),
                                         style = MaterialTheme.typography.titleSmall,
                                         color = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
@@ -425,7 +427,7 @@ fun PlayerControlsOverlay(
 
                                 item {
                                     Text(
-                                        text = "Text Colour",
+                                        text = stringResource(R.string.subtitle_text_colour),
                                         style = MaterialTheme.typography.titleSmall,
                                         color = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.padding(top = 16.dp, bottom = 4.dp),
@@ -444,7 +446,7 @@ fun PlayerControlsOverlay(
 
                                 item {
                                     Text(
-                                        text = "Background Colour",
+                                        text = stringResource(R.string.subtitle_background_colour),
                                         style = MaterialTheme.typography.titleSmall,
                                         color = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.padding(top = 16.dp, bottom = 4.dp),
@@ -464,7 +466,7 @@ fun PlayerControlsOverlay(
                         },
                         confirmButton = {
                             TextButton(onClick = onDismissDialog) {
-                                Text("Done")
+                                Text(stringResource(R.string.done))
                             }
                         },
                     )

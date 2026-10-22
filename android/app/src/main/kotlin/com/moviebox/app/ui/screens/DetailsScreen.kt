@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -122,86 +124,68 @@ fun DetailsScreen(
             return@Scaffold
         }
 
-        LazyColumn(
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 24.dp),
         ) {
-            item {
-                Row(modifier = Modifier.padding(16.dp)) {
-                    details.posterUrl?.let { url ->
-                        AsyncImage(
-                            model = url,
-                            contentDescription = details.title,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier
-                                .width(120.dp)
-                                .aspectRatio(2f / 3f)
-                                .clip(MaterialTheme.shapes.medium),
-                        )
-                        Spacer(modifier = Modifier.width(16.dp))
-                    }
-                    Column {
-                        Text(details.title, style = MaterialTheme.typography.titleMedium)
-                        details.year?.let {
-                            Text(
-                                text = it,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                        details.imdbRating?.let {
-                            Text(
-                                text = "IMDb $it",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.secondary,
-                            )
-                        }
-                        details.duration?.let {
-                            Text(
-                                text = it,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                        details.director?.let {
-                            Text(
-                                text = "Director: $it",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
-                }
-            }
-
-            if (details.description?.isNotBlank() == true) {
-                item {
-                    Text(
-                        text = details.description,
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(horizontal = 16.dp),
+            if (maxWidth >= 840.dp) {
+                Row(modifier = Modifier.fillMaxSize()) {
+                    DetailsInformationPane(details, Modifier.weight(0.4f))
+                    DetailsContentList(
+                        state = state,
+                        details = details,
+                        includeInformation = false,
+                        modifier = Modifier.weight(0.6f),
+                        onResolutionSelected = onResolutionSelected,
+                        onSubtitleSelected = onSubtitleSelected,
+                        onSeasonSelected = onSeasonSelected,
+                        onEpisodeSelected = onEpisodeSelected,
+                        onPlay = onPlay,
+                        onDownload = onDownload,
                     )
-                    Spacer(modifier = Modifier.height(12.dp))
                 }
+            } else {
+                DetailsContentList(
+                    state = state,
+                    details = details,
+                    includeInformation = true,
+                    modifier = Modifier.fillMaxSize(),
+                    onResolutionSelected = onResolutionSelected,
+                    onSubtitleSelected = onSubtitleSelected,
+                    onSeasonSelected = onSeasonSelected,
+                    onEpisodeSelected = onEpisodeSelected,
+                    onPlay = onPlay,
+                    onDownload = onDownload,
+                )
             }
+        }
 
-            if (details.genres.isNotEmpty()) {
-                item {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        details.genres.take(4).forEach { genre ->
-                            AssistChip(onClick = {}, label = { Text(genre) })
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(12.dp))
-                }
-            }
+    }
+}
+
+@Composable
+private fun DetailsContentList(
+    state: DetailsUiState,
+    details: com.moviebox.app.core.MediaDetails,
+    includeInformation: Boolean,
+    modifier: Modifier,
+    onResolutionSelected: (String) -> Unit,
+    onSubtitleSelected: (SubtitleOption?) -> Unit,
+    onSeasonSelected: (Int) -> Unit,
+    onEpisodeSelected: (Int) -> Unit,
+    onPlay: (Release, SubtitleOption?) -> Unit,
+    onDownload: (Release) -> Unit,
+) {
+    LazyColumn(
+        modifier = modifier,
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 24.dp),
+    ) {
+        if (includeInformation) {
+            item { DetailsInfoHeader(details) }
+            if (details.description?.isNotBlank() == true) item { DetailsDescription(details) }
+            if (details.genres.isNotEmpty()) item { DetailsGenres(details) }
+        }
 
             if (details.seasons.isNotEmpty()) {
                 item {
@@ -221,7 +205,7 @@ fun DetailsScreen(
                         items(details.seasons) { season ->
                             AssistChip(
                                 onClick = { onSeasonSelected(season.number) },
-                                label = { Text("S${season.number}") },
+                                label = { Text(stringResource(R.string.season_chip, season.number)) },
                                 leadingIcon = if (state.selectedSeason == season.number) {
                                     {
                                         Icon(
@@ -330,7 +314,7 @@ fun DetailsScreen(
                             FilterChip(
                                 selected = state.selectedResolution == res,
                                 onClick = { onResolutionSelected(res) },
-                                label = { Text(res) },
+                                label = { Text(if (res == "All") stringResource(R.string.all) else res) },
                             )
                         }
                     }
@@ -359,7 +343,7 @@ fun DetailsScreen(
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
-                            text = if (state.releases.isNotEmpty()) "No sources matching resolution ${state.selectedResolution}" else "No sources available",
+                            text = if (state.releases.isNotEmpty()) stringResource(R.string.no_sources_matching, state.selectedResolution) else stringResource(R.string.no_sources_available),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -375,7 +359,59 @@ fun DetailsScreen(
                 }
             }
         }
+}
+
+@Composable
+private fun DetailsInformationPane(
+    details: com.moviebox.app.core.MediaDetails,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState()),
+    ) {
+        DetailsInfoHeader(details)
+        if (details.description?.isNotBlank() == true) DetailsDescription(details)
+        if (details.genres.isNotEmpty()) DetailsGenres(details)
     }
+}
+
+@Composable
+private fun DetailsInfoHeader(details: com.moviebox.app.core.MediaDetails) {
+    Row(modifier = Modifier.padding(16.dp)) {
+        details.posterUrl?.let { url ->
+            AsyncImage(
+                model = url,
+                contentDescription = details.title,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.width(120.dp).aspectRatio(2f / 3f).clip(MaterialTheme.shapes.medium),
+            )
+            Spacer(modifier = Modifier.width(16.dp))
+        }
+        Column {
+            Text(details.title, style = MaterialTheme.typography.titleMedium)
+            details.year?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+            details.imdbRating?.let { Text("IMDb $it", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary) }
+            details.duration?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+            details.director?.let { Text(stringResource(R.string.director, it), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+        }
+    }
+}
+
+@Composable
+private fun DetailsDescription(details: com.moviebox.app.core.MediaDetails) {
+    Text(details.description.orEmpty(), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(horizontal = 16.dp))
+    Spacer(modifier = Modifier.height(12.dp))
+}
+
+@Composable
+private fun DetailsGenres(details: com.moviebox.app.core.MediaDetails) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        details.genres.take(4).forEach { genre -> AssistChip(onClick = {}, label = { Text(genre) }) }
+    }
+    Spacer(modifier = Modifier.height(12.dp))
 }
 
 @Composable
@@ -430,7 +466,7 @@ private fun ReleaseRow(
                 }
             } else {
                 OutlinedButton(onClick = onDownload) {
-                    Icon(Icons.Filled.Download, contentDescription = stringResource(R.string.download))
+                    Icon(Icons.Filled.Download, contentDescription = null)
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(stringResource(R.string.download), fontWeight = FontWeight.Medium)
                 }

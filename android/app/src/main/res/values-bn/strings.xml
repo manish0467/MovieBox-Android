@@ -43,4 +43,37 @@
     <string name="deck_featured">নির্বাচিত</string>
     <string name="deck_movies">সিনেমা</string>
     <string name="deck_series">সিরিজ</string>
+    <string name="pause">বিরতি</string><string name="retry">আবার চেষ্টা করুন</string><string name="open">খুলুন</string>
+    <string name="cancel_remove">বাতিল করে সরান</string><string name="remove_from_list">তালিকা থেকে সরান</string>
+    <string name="season_chip">S%1$d</string><string name="chapters">অধ্যায়</string><string name="speed">গতি</string>
+    <string name="style">শৈলী</string><string name="quality_resolution">গুণমান / রেজোলিউশন</string>
+    <string name="playback_speed">প্লেব্যাকের গতি</string><string name="reset_playback_speed">রিসেট (1.0x)</string>
+    <string name="subtitle_styling">সাবটাইটেলের শৈলী</string><string name="done">সম্পন্ন</string>
+    <string name="picture_in_picture">পিকচার ইন পিকচার</string><string name="seek_preview_thumbnail">সিক প্রিভিউ থাম্বনেইল</string>
+    <string name="player_resolution">রেজোলিউশন (%1$s)</string><string name="player_subtitles">সাবটাইটেল (%1$s)</string>
+    <string name="director">পরিচালক: %1$s</string><string name="episode_number">পর্ব %1$d</string>
+    <string name="season_episode">সিজন %1$d · পর্ব %2$d</string><string name="none_off">কিছুই না (বন্ধ)</string>
+    <string name="auto">স্বয়ংক্রিয়</string>
+    <string name="subtitle_text_size">লেখার আকার</string><string name="subtitle_text_colour">লেখার রঙ</string>
+    <string name="subtitle_background_colour">পটভূমির রঙ</string>
+    <string name="size_small">ছোট (14sp)</string><string name="size_medium">মাঝারি (18sp)</string>
+    <string name="size_large">বড় (24sp)</string><string name="size_extra_large">অতি বড় (30sp)</string>
+    <string name="colour_white">সাদা</string><string name="colour_yellow">হলুদ</string>
+    <string name="colour_cyan">সায়ান</string><string name="colour_green">সবুজ</string>
+    <string name="background_transparent">কিছুই না (স্বচ্ছ)</string>
+    <string name="background_semi_transparent_black">আধা-স্বচ্ছ কালো</string>
+    <string name="background_solid_black">গাঢ় কালো</string>
+    <string name="all">সব</string>
+    <string name="downloads_empty_hint">একটি শিরোনাম খুঁজে যেকোনো সোর্স স্ট্রিমের পাশে ডাউনলোড চাপুন</string>
+    <string name="status_completed">সম্পন্ন</string><string name="status_running">চলছে</string>
+    <string name="status_paused">বিরতিতে</string><string name="status_failed">ব্যর্থ</string>
+    <string name="status_queued">অপেক্ষায়</string>
+    <string name="search_provider">%1$s-এ খুঁজুন</string>
+    <string name="explore_hint">দ্রুত মিরর ও স্ট্রিমিংসহ শিরোনাম ঘুরে দেখুন।</string>
+    <string name="favorites_empty_hint">এখানে সংরক্ষণ করতে যেকোনো সিনেমা বা সিরিজের হার্ট আইকনে চাপুন।</string>
+    <string name="history_empty_hint">আপনি যে সিনেমা ও পর্ব চালাবেন তা এখানে দেখা যাবে।</string>
+    <string name="no_sources_available">কোনো সোর্স নেই</string>
+    <string name="no_sources_matching">%1$s রেজোলিউশনের কোনো সোর্স নেই</string>
+    <string name="no_results_for">&quot;%1$s&quot;-এর জন্য কোনো ফলাফল নেই</string>
+    <string name="of">মোট %1$s</string>
 </resources>
