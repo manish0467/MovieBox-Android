@@ -39,6 +39,8 @@ dependency on the `v0.1.28` tag.
 - **Store metadata.** The key, the CI secrets and the certificate fingerprint
   are in place; the listing itself — description, screenshots, data-safety
   answers — is the remaining piece.
+- **Native review of Bengali/Hindi strings pending.** The shipped translations
+  have had no native-speaker pass yet; corrections are expected after release.
 
 ## Later
 
