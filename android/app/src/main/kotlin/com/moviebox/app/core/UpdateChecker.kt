@@ -28,10 +28,21 @@ data class AppRelease(
             .takeWhile { it.isDigit() }
             .toIntOrNull() ?: 0
 
-    /** The signed APK of the release. */
+    /**
+     * The signed APK of the release.
+     *
+     * A release also carries `app-debug.apk`, which is signed with the debug key
+     * and would be refused by the certificate check below, so the name matters:
+     * taking whichever asset happens to be listed first downloaded the debug
+     * build and then reported "could not be downloaded or verified".
+     */
     val apk: ReleaseAsset?
-        get() = assets.firstOrNull { it.name.endsWith(".apk") }
+        get() = assets.firstOrNull { it.name == RELEASE_APK }
+            ?: assets.firstOrNull { it.name.endsWith(".apk") && !it.name.contains("debug") }
 }
+
+/** The asset name the updater must pick; the debug APK is signed with another key. */
+private const val RELEASE_APK = "app-release.apk"
 
 /** One asset of a release. */
 @Serializable
