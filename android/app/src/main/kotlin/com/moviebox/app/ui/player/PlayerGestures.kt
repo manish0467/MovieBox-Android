@@ -6,6 +6,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.awaitLongPressOrCancellation
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -37,6 +38,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.AwaitPointerEventScope
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -103,6 +105,10 @@ fun Modifier.playerSurfaceGestures(
                 val change = event.changes.firstOrNull { it.id == down.id } ?: break
 
                 if (!change.pressed) {
+                    if (change.isConsumed) {
+                        // A long press (speed boost) owned this gesture.
+                        break
+                    }
                     if (isDragging && activeGesture != null) {
                         change.consume()
                         onDragEnd(activeGesture)
@@ -120,7 +126,7 @@ fun Modifier.playerSurfaceGestures(
                 val stepDy = currentY - prevY
 
                 if (!isDragging) {
-                    if (abs(totalDx) > touchSlop || abs(totalDy) > touchSlop) {
+                    if (!change.isConsumed && (abs(totalDx) > touchSlop || abs(totalDy) > touchSlop)) {
                         isDragging = true
                         activeGesture = if (abs(totalDx) > abs(totalDy)) {
                             GestureType.SEEK
@@ -141,6 +147,39 @@ fun Modifier.playerSurfaceGestures(
                 }
             }
         }
+    }
+}
+
+/**
+ * Holds the video to play it faster.
+ *
+ * Installed only when the speed boost is available, so it is inert otherwise.
+ * The whole hold is consumed, which keeps the tap handler above quiet; a hold
+ * that never reaches the timeout, or that turns into a drag, is left alone.
+ */
+fun Modifier.playerHoldToBoost(
+    enabled: Boolean = true,
+    onHoldStart: () -> Unit,
+    onHoldEnd: () -> Unit,
+): Modifier {
+    if (!enabled) return this
+    return this.pointerInput(Unit) {
+        awaitEachGesture {
+            val down = awaitFirstDown(requireUnconsumed = false)
+            awaitLongPressOrCancellation(down.id) ?: return@awaitEachGesture
+            onHoldStart()
+            consumeUntilUp()
+            onHoldEnd()
+        }
+    }
+}
+
+/** Swallows the rest of the gesture, including the release. */
+private suspend fun AwaitPointerEventScope.consumeUntilUp() {
+    while (true) {
+        val event = awaitPointerEvent()
+        event.changes.forEach { it.consume() }
+        if (event.changes.none { it.pressed }) return
     }
 }
 

@@ -51,6 +51,7 @@
     <string name="subtitle_styling">Estilo de subtítulos</string><string name="done">Listo</string>
     <string name="picture_in_picture">Imagen en imagen</string><string name="seek_preview_thumbnail">Miniatura de vista previa al buscar</string>
     <string name="player_resolution">Resolución (%1$s)</string><string name="player_subtitles">Subtítulos (%1$s)</string>
+    <string name="player_settings">Ajustes del reproductor</string><string name="playback">Reproducción</string>
     <string name="director">Director: %1$s</string>
     <string name="season_episode">Temporada %1$d · Episodio %2$d</string><string name="none_off">Ninguno (desactivado)</string>
     <string name="auto">Automático</string>

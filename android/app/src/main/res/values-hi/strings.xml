@@ -51,6 +51,7 @@
     <string name="subtitle_styling">सबटाइटल शैली</string><string name="done">हो गया</string>
     <string name="picture_in_picture">पिक्चर इन पिक्चर</string><string name="seek_preview_thumbnail">सीक प्रीव्यू थंबनेल</string>
     <string name="player_resolution">रिज़ॉल्यूशन (%1$s)</string><string name="player_subtitles">सबटाइटल (%1$s)</string>
+    <string name="player_settings">प्लेयर सेटिंग्स</string><string name="playback">प्लेबैक</string>
     <string name="director">निर्देशक: %1$s</string>
     <string name="season_episode">सीज़न %1$d · एपिसोड %2$d</string><string name="none_off">कोई नहीं (बंद)</string>
     <string name="auto">स्वतः</string>

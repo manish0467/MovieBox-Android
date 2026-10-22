@@ -51,6 +51,7 @@
     <string name="subtitle_styling">সাবটাইটেলের শৈলী</string><string name="done">সম্পন্ন</string>
     <string name="picture_in_picture">পিকচার ইন পিকচার</string><string name="seek_preview_thumbnail">সিক প্রিভিউ থাম্বনেইল</string>
     <string name="player_resolution">রেজোলিউশন (%1$s)</string><string name="player_subtitles">সাবটাইটেল (%1$s)</string>
+    <string name="player_settings">প্লেয়ার সেটিংস</string><string name="playback">প্লেব্যাক</string>
     <string name="director">পরিচালক: %1$s</string>
     <string name="season_episode">সিজন %1$d · পর্ব %2$d</string><string name="none_off">কিছুই না (বন্ধ)</string>
     <string name="auto">স্বয়ংক্রিয়</string>

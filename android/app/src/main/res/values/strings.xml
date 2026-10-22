@@ -94,4 +94,5 @@
     <string name="seek_preview_thumbnail">Seek preview thumbnail</string>
     <string name="player_resolution">Resolution (%1$s)</string>
     <string name="player_subtitles">Subtitles (%1$s)</string>
+    <string name="player_settings">Player settings</string><string name="playback">Playback</string>
 </resources>

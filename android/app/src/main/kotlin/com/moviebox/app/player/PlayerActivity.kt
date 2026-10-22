@@ -12,6 +12,7 @@ import android.os.Bundle
 import android.view.View
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
+import androidx.activity.addCallback
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.activity.result.contract.ActivityResultContracts
@@ -32,6 +33,8 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
+import androidx.media3.common.Tracks
+import androidx.media3.common.text.CueGroup
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.DefaultHttpDataSource
@@ -40,6 +43,12 @@ import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.ui.PlayerView
 import com.moviebox.app.core.MovieBoxRepository
 import com.moviebox.app.core.SubtitleOption
+import com.moviebox.app.player.features.AudioTracksFeature
+import com.moviebox.app.player.features.LockModeFeature
+import com.moviebox.app.player.features.PlayerFeatures
+import com.moviebox.app.player.features.SleepTimerFeature
+import com.moviebox.app.player.features.SpeedBoostFeature
+import com.moviebox.app.player.features.SubtitleTimingFeature
 import com.moviebox.app.ui.player.GestureIconType
 import com.moviebox.app.ui.player.GestureHudState
 import com.moviebox.app.ui.player.GestureType
@@ -70,6 +79,9 @@ class PlayerActivity : ComponentActivity() {
     private var player: ExoPlayer? = null
     private var playerViewRef: PlayerView? = null
     private var mediaManager: PlayerMediaManager? = null
+
+    /** Seams for the player features; inert until each feature lands. */
+    private lateinit var features: PlayerFeatures
 
     /** The media notification needs this permission on Android 13 and newer.
      *  Playback works without it, so the answer is ignored. */
@@ -148,6 +160,34 @@ class PlayerActivity : ComponentActivity() {
             .build()
         player = exoPlayer
 
+        // Feature seams: each player feature of the 0.10.0 release plugs in
+        // here. Every one of them is inert until the feature itself lands, so
+        // the player behaves exactly as it did before.
+        features = PlayerFeatures(
+            audio = AudioTracksFeature(player = { player }),
+            sleep = SleepTimerFeature(
+                scope = lifecycleScope,
+                onPause = { player?.pause() },
+            ),
+            subtitles = SubtitleTimingFeature(),
+            boost = SpeedBoostFeature(
+                currentSpeed = { viewModel.uiState.value.playbackSpeed },
+                onSpeedChanged = { speed ->
+                    player?.playbackParameters = PlaybackParameters(speed)
+                },
+            ),
+            lock = LockModeFeature(onLockChanged = { locked -> applyLock(locked) }),
+        )
+
+        // The top bar and the system back button go through the lock feature,
+        // which lets a locked player stay open.
+        onBackPressedDispatcher.addCallback(this) {
+            if (!features.lock.onBackPressed()) {
+                saveProgress()
+                finish()
+            }
+        }
+
         // Apply session speed
         exoPlayer.playbackParameters = PlaybackParameters(PlayerSessionPreferences.playbackSpeed)
         viewModel.setPlaybackSpeed(PlayerSessionPreferences.playbackSpeed)
@@ -185,8 +225,19 @@ class PlayerActivity : ComponentActivity() {
         // Listener for player events
         exoPlayer.addListener(object : Player.Listener {
             override fun onPlaybackStateChanged(playbackState: Int) {
+                if (playbackState == Player.STATE_ENDED) {
+                    features.sleep.onPlaybackEnded()
+                }
                 updateProgressState()
                 mediaManager?.updateNotification()
+            }
+
+            override fun onTracksChanged(tracks: Tracks) {
+                features.audio.onTracks(tracks)
+            }
+
+            override fun onCues(cueGroup: CueGroup) {
+                features.subtitles.onCues(cueGroup)
             }
 
             override fun onIsPlayingChanged(isPlaying: Boolean) {
@@ -255,12 +306,18 @@ class PlayerActivity : ComponentActivity() {
                                 })
                                 playerViewRef = this
                                 applySubtitleStyle()
+                                // Once the subtitle customizer draws cues itself,
+                                // Media3's own subtitle view gets out of the way.
+                                if (features.subtitles.rendersCues) {
+                                    subtitleView?.visibility = View.GONE
+                                }
                             }
                         },
                     )
 
                     PlayerControlsOverlay(
                         uiState = uiState,
+                        features = features,
                         onBack = {
                             saveProgress()
                             finish()
@@ -525,15 +582,33 @@ class PlayerActivity : ComponentActivity() {
     ) {
         super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
         viewModel.setInPipMode(isInPictureInPictureMode)
+        features.lock.onPipChanged(isInPictureInPictureMode)
         playerViewRef?.apply {
             useController = !isInPictureInPictureMode
             if (!isInPictureInPictureMode) {
-                showController()
-                viewModel.setControlsVisible(true)
+                // A locked player stays hidden when it returns from PiP.
+                if (!features.lock.isLocked.value) {
+                    showController()
+                    viewModel.setControlsVisible(true)
+                }
             } else {
                 hideController()
                 viewModel.setControlsVisible(false)
             }
+        }
+    }
+
+    /** Hides or restores the controls when the lock feature asks for it. */
+    private fun applyLock(locked: Boolean) {
+        val playerView = playerViewRef ?: return
+        if (locked) {
+            playerView.hideController()
+            viewModel.setControlsVisible(false)
+            setSystemBarsVisible(false)
+        } else {
+            playerView.showController()
+            viewModel.setControlsVisible(true)
+            setSystemBarsVisible(true)
         }
     }
 
