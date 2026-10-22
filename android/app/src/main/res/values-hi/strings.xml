@@ -51,4 +51,29 @@
     <string name="subtitle_styling">सबटाइटल शैली</string><string name="done">हो गया</string>
     <string name="picture_in_picture">पिक्चर इन पिक्चर</string><string name="seek_preview_thumbnail">सीक प्रीव्यू थंबनेल</string>
     <string name="player_resolution">रिज़ॉल्यूशन (%1$s)</string><string name="player_subtitles">सबटाइटल (%1$s)</string>
+    <string name="director">निर्देशक: %1$s</string><string name="episode_number">एपिसोड %1$d</string>
+    <string name="season_episode">सीज़न %1$d · एपिसोड %2$d</string><string name="none_off">कोई नहीं (बंद)</string>
+    <string name="auto">स्वतः</string>
+    <string name="subtitle_text_size">टेक्स्ट आकार</string><string name="subtitle_text_colour">टेक्स्ट रंग</string>
+    <string name="subtitle_background_colour">पृष्ठभूमि रंग</string>
+    <string name="size_small">छोटा (14sp)</string><string name="size_medium">मध्यम (18sp)</string>
+    <string name="size_large">बड़ा (24sp)</string><string name="size_extra_large">बहुत बड़ा (30sp)</string>
+    <string name="colour_white">सफ़ेद</string><string name="colour_yellow">पीला</string>
+    <string name="colour_cyan">सियान</string><string name="colour_green">हरा</string>
+    <string name="background_transparent">कोई नहीं (पारदर्शी)</string>
+    <string name="background_semi_transparent_black">अर्ध-पारदर्शी काला</string>
+    <string name="background_solid_black">ठोस काला</string>
+    <string name="all">सभी</string>
+    <string name="downloads_empty_hint">कोई शीर्षक खोजें और किसी भी स्रोत स्ट्रीम के पास डाउनलोड दबाएँ</string>
+    <string name="status_completed">पूर्ण</string><string name="status_running">चल रहा है</string>
+    <string name="status_paused">रुका हुआ</string><string name="status_failed">विफल</string>
+    <string name="status_queued">कतार में</string>
+    <string name="search_provider">%1$s में खोजें</string>
+    <string name="explore_hint">तेज़ मिरर और स्ट्रीमिंग के साथ शीर्षक देखें।</string>
+    <string name="favorites_empty_hint">यहाँ सहेजने के लिए किसी भी फ़िल्म या सीरीज़ के हार्ट आइकन पर टैप करें।</string>
+    <string name="history_empty_hint">आप जो फ़िल्में और एपिसोड चलाएँगे वे यहाँ दिखेंगे।</string>
+    <string name="no_sources_available">कोई स्रोत उपलब्ध नहीं</string>
+    <string name="no_sources_matching">%1$s रिज़ॉल्यूशन का कोई स्रोत नहीं</string>
+    <string name="no_results_for">&quot;%1$s&quot; के लिए कोई परिणाम नहीं</string>
+    <string name="of">कुल %1$s</string>
 </resources>

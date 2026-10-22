@@ -326,7 +326,7 @@ private fun HomeTabContent(
             if (state.results.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text(
-                        text = "No results for \"${state.query}\"",
+                        text = stringResource(R.string.no_results_for, state.query),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -357,7 +357,7 @@ private fun HomeTabContent(
                 if (state.continueWatching.isNotEmpty()) {
                     item {
                         Text(
-                            text = "Continue Watching",
+                            text = stringResource(R.string.continue_watching),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 8.dp),
@@ -384,12 +384,14 @@ private fun HomeTabContent(
                     item {
                         val selectedIndex = DEFAULT_HOME_DECK_TABS.indexOfFirst { it.id == state.selectedHomeDeckTab }
                             .coerceAtLeast(0)
-                        // Three equal-width tabs stop fitting the longest deck
-                        // label at about 1.8, where the row starts to scroll.
-                        if (LocalDensity.current.fontScale >= 1.8f) {
+                        // Equal-width tabs stop fitting the longest deck label as
+                        // soon as the text is scaled; past that, let the tabs
+                        // size to their content so no locale gets truncated.
+                        if (LocalDensity.current.fontScale > 1.15f) {
                             ScrollableTabRow(
                                 selectedTabIndex = selectedIndex,
                                 modifier = Modifier.padding(horizontal = 16.dp),
+                                edgePadding = 0.dp,
                             ) {
                                 DEFAULT_HOME_DECK_TABS.forEachIndexed { index, tab ->
                                     Tab(
@@ -488,13 +490,13 @@ private fun HomeTabContent(
                             horizontalAlignment = Alignment.CenterHorizontally,
                         ) {
                             Text(
-                                text = "Search ${state.activeProviderInfo?.label ?: "provider"}",
+                                text = stringResource(R.string.search_provider, state.activeProviderInfo?.label ?: "provider"),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                             )
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
-                                text = "Explore titles with fast mirrors and streaming.",
+                                text = stringResource(R.string.explore_hint),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -564,12 +566,12 @@ private fun FavoritesTabContent(
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
-                    text = "No favorites yet",
+                    text = stringResource(R.string.no_favorites),
                     style = MaterialTheme.typography.titleMedium,
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Tap the heart icon on any movie or series to save it here.",
+                    text = stringResource(R.string.favorites_empty_hint),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -632,12 +634,12 @@ private fun HistoryTabContent(
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
-                    text = "No watch history",
+                    text = stringResource(R.string.no_history),
                     style = MaterialTheme.typography.titleMedium,
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Movies and episodes you play will appear here.",
+                    text = stringResource(R.string.history_empty_hint),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -708,7 +710,7 @@ private fun ContinueWatchingCard(item: WatchHistoryItem, onClick: () -> Unit) {
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                val label = if (item.isSeries) "S${item.season}:E${item.episode}" else "Movie"
+                val label = if (item.isSeries) "S${item.season}:E${item.episode}" else stringResource(R.string.movie)
                 Text(
                     text = label,
                     style = MaterialTheme.typography.labelSmall,
@@ -919,12 +921,12 @@ private fun DownloadsTabContent(
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = "No downloads yet",
+                    text = stringResource(R.string.no_downloads),
                     style = MaterialTheme.typography.titleMedium,
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Find a title and tap Download next to any source stream",
+                    text = stringResource(R.string.downloads_empty_hint),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center,
@@ -983,7 +985,7 @@ private fun DownloadJobCard(
                             if (job.isSeries) {
                                 append("S${job.season}:E${job.episode}")
                             } else {
-                                append("Movie")
+                                append(stringResource(R.string.movie))
                             }
                             if (job.provider.isNotBlank()) {
                                 append(" · ").append(job.provider)
@@ -996,11 +998,11 @@ private fun DownloadJobCard(
                 Spacer(modifier = Modifier.width(8.dp))
                 // State Badge
                 val (stateText, stateColor) = when {
-                    job.isCompleted -> "Completed" to Color(0xFF4CAF50)
-                    job.isRunning -> "Running" to MaterialTheme.colorScheme.primary
-                    job.isPaused -> "Paused" to Color(0xFFFFA000)
-                    job.isFailed -> "Failed" to MaterialTheme.colorScheme.error
-                    else -> "Queued" to MaterialTheme.colorScheme.secondary
+                    job.isCompleted -> stringResource(R.string.status_completed) to Color(0xFF4CAF50)
+                    job.isRunning -> stringResource(R.string.status_running) to MaterialTheme.colorScheme.primary
+                    job.isPaused -> stringResource(R.string.status_paused) to Color(0xFFFFA000)
+                    job.isFailed -> stringResource(R.string.status_failed) to MaterialTheme.colorScheme.error
+                    else -> stringResource(R.string.status_queued) to MaterialTheme.colorScheme.secondary
                 }
                 Box(
                     modifier = Modifier

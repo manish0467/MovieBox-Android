@@ -314,7 +314,7 @@ private fun DetailsContentList(
                             FilterChip(
                                 selected = state.selectedResolution == res,
                                 onClick = { onResolutionSelected(res) },
-                                label = { Text(res) },
+                                label = { Text(if (res == "All") stringResource(R.string.all) else res) },
                             )
                         }
                     }
@@ -343,7 +343,7 @@ private fun DetailsContentList(
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
-                            text = if (state.releases.isNotEmpty()) "No sources matching resolution ${state.selectedResolution}" else "No sources available",
+                            text = if (state.releases.isNotEmpty()) stringResource(R.string.no_sources_matching, state.selectedResolution) else stringResource(R.string.no_sources_available),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -392,7 +392,7 @@ private fun DetailsInfoHeader(details: com.moviebox.app.core.MediaDetails) {
             details.year?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
             details.imdbRating?.let { Text("IMDb $it", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary) }
             details.duration?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-            details.director?.let { Text("Director: $it", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+            details.director?.let { Text(stringResource(R.string.director, it), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
         }
     }
 }

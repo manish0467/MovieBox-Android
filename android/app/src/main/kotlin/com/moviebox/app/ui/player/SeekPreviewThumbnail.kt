@@ -156,7 +156,7 @@ fun SeekPreviewThumbnail(
 
                     if (durationMs > 0) {
                         Text(
-                            text = "of $totalFormatted",
+                            text = stringResource(R.string.of, totalFormatted),
                             style = MaterialTheme.typography.labelSmall,
                             color = Color.LightGray,
                         )
