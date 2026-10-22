@@ -16,7 +16,7 @@
     <string name="theme">Theme</string><string name="theme_system">System</string><string name="theme_light">Light</string>
     <string name="theme_dark">Dark</string><string name="theme_oled">OLED black</string>
     <string name="theme_blue">Blue</string><string name="theme_green">Green</string><string name="theme_rose">Rose</string>
-    <string name="director">Director: %1$s</string><string name="episode_number">Episode %1$d</string>
+    <string name="director">Director: %1$s</string>
     <string name="season_episode">Season %1$d · Episode %2$d</string><string name="none_off">None (Off)</string>
     <string name="auto">Auto</string>
     <string name="subtitle_text_size">Text size</string><string name="subtitle_text_colour">Text colour</string>
@@ -41,6 +41,10 @@
     <string name="no_sources_matching">No sources matching resolution %1$s</string>
     <string name="no_results_for">No results for &quot;%1$s&quot;</string>
     <string name="of">of %1$s</string>
+    <string name="diagnostics">Diagnostics</string>
+    <string name="diagnostics_hint">Attach this to a bug report. It lists the version, the device and the last log lines.</string>
+    <string name="copy_diagnostic_info">Copy diagnostic info</string>
+    <string name="diagnostics_copied">Diagnostic info copied</string>
 
     <string name="appearance">Appearance</string>
     <string name="close">Close</string>

@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -85,9 +86,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalContext
+import android.widget.Toast
 import com.moviebox.app.R
 import coil.compose.AsyncImage
 import com.moviebox.app.core.CatalogItem
+import com.moviebox.app.core.Diagnostics
 import com.moviebox.app.core.DownloadJob
 import com.moviebox.app.core.FavoriteItem
 import com.moviebox.app.core.ProviderMediaId
@@ -127,7 +131,7 @@ fun HomeScreen(
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     var showAppearance by remember { mutableStateOf(false) }
-    val compactNavigation = LocalDensity.current.fontScale >= 1.8f
+    val compactNavigation = LocalDensity.current.fontScale > 1.35f
     val homeNavigationLabel: (@Composable () -> Unit)? = if (compactNavigation) null else {
         { Text(stringResource(R.string.home), style = MaterialTheme.typography.labelSmall, maxLines = 1, softWrap = false) }
     }
@@ -274,9 +278,16 @@ private fun HomeTabContent(
             onValueChange = onQueryChange,
             modifier = Modifier
                 .fillMaxWidth()
+                .heightIn(min = 56.dp)
                 .padding(horizontal = 16.dp, vertical = 6.dp),
             singleLine = true,
-            placeholder = { Text(stringResource(R.string.search_hint)) },
+            placeholder = {
+                Text(
+                    text = stringResource(R.string.search_hint),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            },
             leadingIcon = {
                 Icon(Icons.Filled.Search, contentDescription = null)
             },
@@ -1135,7 +1146,7 @@ private fun DownloadJobCard(
     }
 }
 
-/** The settings: the colour scheme and the update check. */
+/** The settings: the colour scheme, the update check and the diagnostics copy. */
 @Composable
 private fun SettingsDialog(
     current: MovieBoxThemeMode,
@@ -1145,6 +1156,7 @@ private fun SettingsDialog(
     onInstallUpdate: () -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val context = LocalContext.current
     val options = listOf(
         MovieBoxThemeMode.SYSTEM to R.string.theme_system,
         MovieBoxThemeMode.LIGHT to R.string.theme_light,
@@ -1225,6 +1237,31 @@ private fun SettingsDialog(
                     enabled = !busy,
                 ) {
                     Text(stringResource(R.string.check_for_updates))
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+                HorizontalDivider()
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Text(
+                    text = stringResource(R.string.diagnostics),
+                    style = MaterialTheme.typography.labelLarge,
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = stringResource(R.string.diagnostics_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedButton(
+                    onClick = {
+                        if (Diagnostics.copy(context)) {
+                            Toast.makeText(context, R.string.diagnostics_copied, Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                ) {
+                    Text(stringResource(R.string.copy_diagnostic_info))
                 }
             }
         },
