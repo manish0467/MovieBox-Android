@@ -67,6 +67,14 @@ data class UpdateState(
     val versionCode: Int = 0,
 )
 
+/**
+ * The providers the app does not offer.
+ *
+ * The two BDIX mirrors are geo-blocked for some regions, so they are hidden
+ * here. The engine keeps them, and the terminal client is not affected.
+ */
+private val HIDDEN_PROVIDERS = setOf("bdix_circleftp", "bdix_dhakaflix")
+
 data class HomeUiState(
     val selectedTab: MainTab = MainTab.HOME,
     val providers: List<ProviderInfo> = emptyList(),
@@ -199,7 +207,18 @@ class MovieBoxViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             runCatching { repository.providers() }
                 .onSuccess { providers ->
-                    _state.update { it.copy(providers = providers) }
+                    val visible = providers.filter { it.id !in HIDDEN_PROVIDERS }
+                    _state.update { state ->
+                        state.copy(
+                            providers = visible,
+                            // The stored provider may be one of the hidden ones.
+                            selectedProvider = if (state.selectedProvider in HIDDEN_PROVIDERS) {
+                                visible.firstOrNull()?.id ?: state.selectedProvider
+                            } else {
+                                state.selectedProvider
+                            },
+                        )
+                    }
                 }
                 .onFailure { error ->
                     _state.update { it.copy(error = error.message) }
