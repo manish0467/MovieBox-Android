@@ -10,6 +10,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.view.View
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
@@ -20,6 +21,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.core.content.ContextCompat
+import androidx.core.view.WindowInsetsControllerCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.viewinterop.AndroidView
@@ -158,6 +161,8 @@ class PlayerActivity : ComponentActivity() {
 
         exoPlayer.prepare()
         exoPlayer.playWhenReady = true
+        setScreenAwake(true)
+        setSystemBarsVisible(false)
 
         mediaManager = PlayerMediaManager(this, exoPlayer, title, season, episode)
         mediaManager?.updateNotification()
@@ -187,6 +192,11 @@ class PlayerActivity : ComponentActivity() {
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 updateProgressState()
                 mediaManager?.updateNotification()
+            }
+
+            override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
+                // A buffering video still holds the screen, a paused one does not.
+                setScreenAwake(playWhenReady)
             }
 
             override fun onPositionDiscontinuity(
@@ -239,7 +249,9 @@ class PlayerActivity : ComponentActivity() {
                                 player = exoPlayer
                                 useController = true
                                 setControllerVisibilityListener(PlayerView.ControllerVisibilityListener { visibility ->
-                                    viewModel.setControlsVisible(visibility == View.VISIBLE)
+                                    val visible = visibility == View.VISIBLE
+                                    viewModel.setControlsVisible(visible)
+                                    setSystemBarsVisible(visible)
                                 })
                                 playerViewRef = this
                                 applySubtitleStyle()
@@ -302,9 +314,11 @@ class PlayerActivity : ComponentActivity() {
                                 if (pv.isControllerFullyVisible) {
                                     pv.hideController()
                                     viewModel.setControlsVisible(false)
+                                    setSystemBarsVisible(false)
                                 } else {
                                     pv.showController()
                                     viewModel.setControlsVisible(true)
+                                    setSystemBarsVisible(true)
                                 }
                             } ?: viewModel.toggleControls()
                         },
@@ -425,6 +439,38 @@ class PlayerActivity : ComponentActivity() {
             viewModel.setSeekScrubPosition(null)
         }
         viewModel.hideGestureHudDelayed(800L)
+    }
+
+    /**
+     * Shows or hides the system bars.
+     *
+     * The bars sit on top of the video, so they are hidden while the video
+     * plays and come back together with the controls. A swipe from the edge
+     * still reveals them for a moment.
+     */
+    private fun setSystemBarsVisible(visible: Boolean) {
+        val controller = WindowInsetsControllerCompat(window, window.decorView)
+        controller.systemBarsBehavior =
+            WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        if (visible) {
+            controller.show(WindowInsetsCompat.Type.systemBars())
+        } else {
+            controller.hide(WindowInsetsCompat.Type.systemBars())
+        }
+    }
+
+    /**
+     * Holds the screen awake while the video plays.
+     *
+     * Without it the device dims and locks the screen in the middle of a
+     * film, even though the playback continues in the background.
+     */
+    private fun setScreenAwake(awake: Boolean) {
+        if (awake) {
+            window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        } else {
+            window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
     }
 
     private fun updateProgressState() {
@@ -612,9 +658,24 @@ class PlayerActivity : ComponentActivity() {
         }
     }
 
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (!hasFocus) return
+        // A system dialog (the notification permission, the volume panel)
+        // brings the bars back, so they are hidden again with the controls.
+        // The call is posted, because the system restores the bars after the
+        // focus callback.
+        window.decorView.post {
+            setSystemBarsVisible(viewModel.uiState.value.controlsVisible)
+        }
+    }
+
     override fun onPause() {
         super.onPause()
         saveProgress()
+        // The rest of the app is not fullscreen.
+        setSystemBarsVisible(true)
+        setScreenAwake(false)
     }
 
     override fun onStop() {
