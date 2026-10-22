@@ -19,6 +19,10 @@ dependency on the `v0.1.28` tag.
 - **Live TV**: add an M3U playlist by URL or file path, browse and search its
   channels, and play them; the playlist list is shared with the terminal
   client
+- **The downloads land in the device storage**: a finished download is moved
+  into the public `Movies/MovieBox` collection, so it shows up in a gallery and
+  in a file manager
+- The player hides the system bars and keeps the screen awake while it plays
 
 ## Now — the player and the interface
 
@@ -41,6 +45,19 @@ features that make it feel like a real player, in order of value:
 
 ## Later
 
+- **A new provider: toonplay.in.** The catalogue API of the site is clean and
+  reachable (`animesalt.streamindia.co.in/api`), but the playback chain is not:
+  the site's own extractor serves a certificate for a different domain, and
+  the fallback needs a JavaScript unpacker plus a CryptoJS compatible AES
+  decryption to turn the packed player page into a stream link. That is a
+  brittle thing to build against a site that can change at any time, so it
+  waits until the extractor works again.
+- **cinejoy.pk and flixer.gd** follow the same shape of work: find the API
+  behind the page, write a client, add a provider kind.
+- **A custom endpoint per provider** — the engine's Dramachi client already
+  has `with_base_url`, so a per-provider base-URL override is feasible for the
+  HTML providers. This is the escape hatch for a provider that changes its
+  domain.
 - **Casting.** The Cast SDK plus a button on the player. This needs a Cast
   **application id**, which is registered in the Google Cast console against a
   package name and a signing certificate — so it waits until the app has a

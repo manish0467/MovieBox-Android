@@ -245,6 +245,22 @@ or copy the APK to the phone and open it (allow "unknown sources"). Both cover
 `arm64-v8a` (real devices) and `x86_64` (the emulator), need Android 7 (API 24)
 or newer, and need the INTERNET permission only.
 
+### Where the downloads land
+
+The engine writes the file into the app's external Movies folder
+(`Android/data/com.moviebox.app/files/Movies/MovieBox`), because it writes a
+plain file. When the download is finished, the app moves it into the public
+`Movies/MovieBox` collection through the MediaStore, so the file shows up in a
+gallery and in a file manager and survives the removal of the app.
+
+- The free space is checked before the copy, and the user is told when it
+  does not fit.
+- The original is only deleted once the copy has succeeded.
+- On Android 9 and older the file stays in the app's external folder and is
+  registered with the media scanner, because the public folder would need a
+  storage permission there.
+- "Open" plays the published file through its `content://` uri.
+
 ### The in-app update check
 
 The app is distributed by sideloading, so the settings dialog checks the
