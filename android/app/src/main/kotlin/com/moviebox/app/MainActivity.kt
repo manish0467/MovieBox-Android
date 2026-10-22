@@ -17,6 +17,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.moviebox.app.core.DownloadJob
+import com.moviebox.app.core.DownloadStorage
 import com.moviebox.app.core.DownloadRequest
 import com.moviebox.app.core.MovieBoxRepository
 import com.moviebox.app.core.PlaybackSource
@@ -77,7 +78,7 @@ class MainActivity : ComponentActivity() {
         val testUrl = intent?.getStringExtra("test_download_url")
         if (!testUrl.isNullOrBlank()) {
             val testTitle = intent.getStringExtra("test_download_title") ?: "Test Media"
-            val dest = getExternalFilesDir(null)?.absolutePath
+            val dest = DownloadStorage.workingDirectory(this).absolutePath
             val request = DownloadRequest(
                 url = testUrl,
                 headers = emptyList(),
@@ -99,19 +100,28 @@ class MainActivity : ComponentActivity() {
 
     private fun openDownloadedMedia(job: DownloadJob) {
         val file = java.io.File(job.destination)
-        if (!file.exists()) {
-            Toast.makeText(this, "File not found: ${job.destination}", Toast.LENGTH_LONG).show()
-            return
+        // A finished download has moved into the media store, so the file the
+        // engine reported is gone and the content uri is used instead.
+        val published = DownloadStorage.publishedUri(this, file)
+        val url = when {
+            published != null -> published.toString()
+            file.exists() -> {
+                android.media.MediaScannerConnection.scanFile(
+                    this,
+                    arrayOf(file.absolutePath),
+                    arrayOf("video/mp4"),
+                    null,
+                )
+                Uri.fromFile(file).toString()
+            }
+            else -> {
+                Toast.makeText(this, "File not found: ${job.destination}", Toast.LENGTH_LONG).show()
+                return
+            }
         }
-        android.media.MediaScannerConnection.scanFile(
-            this,
-            arrayOf(file.absolutePath),
-            arrayOf("video/mp4"),
-            null,
-        )
         launchPlayer(
             source = PlaybackSource(
-                url = Uri.fromFile(file).toString(),
+                url = url,
                 headers = emptyList(),
                 sourceLabel = "Local Download",
                 provider = job.provider,

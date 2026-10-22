@@ -6,6 +6,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.moviebox.app.core.DownloadRequest
 import com.moviebox.app.core.MediaDetails
+import com.moviebox.app.core.DownloadStorage
 import com.moviebox.app.core.MovieBoxRepository
 import com.moviebox.app.core.PlaybackSource
 import com.moviebox.app.core.Release
@@ -203,7 +204,7 @@ class DetailsViewModel(app: Application) : AndroidViewModel(app) {
             runCatching {
                 repository.resolvePlayback(details.id.provider, release)
             }.onSuccess { source ->
-                val destinationBase = context.getExternalFilesDir(null)?.absolutePath
+                val destinationBase = DownloadStorage.workingDirectory(context).absolutePath
                 val title = if (release.filename.isNotBlank()) release.filename else details.title
                 val request = DownloadRequest(
                     url = source.url,

@@ -12,12 +12,14 @@ import com.moviebox.app.core.CatalogItem
 import com.moviebox.app.core.DownloadJob
 import com.moviebox.app.core.DownloadRequest
 import com.moviebox.app.core.FavoriteItem
+import com.moviebox.app.core.DownloadStorage
 import com.moviebox.app.core.MovieBoxRepository
 import com.moviebox.app.core.ProviderInfo
 import com.moviebox.app.core.UpdateChecker
 import com.moviebox.app.core.WatchHistoryItem
 import com.moviebox.app.ui.theme.MovieBoxThemeMode
 import com.moviebox.app.ui.theme.themeModeFromName
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,6 +27,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 enum class MainTab(val title: String) {
     HOME("Home"),
@@ -304,16 +307,35 @@ class MovieBoxViewModel(app: Application) : AndroidViewModel(app) {
             runCatching { repository.listDownloads() }
                 .onSuccess { jobs ->
                     _state.update { it.copy(downloads = jobs) }
-                    // Scan completed files into the system media store
+                    // A finished download moves into the public Movies folder,
+                    // so it shows up in a gallery and in a file manager.
                     jobs.filter { it.isCompleted }.forEach { job ->
-                        android.media.MediaScannerConnection.scanFile(
-                            getApplication(),
-                            arrayOf(job.destination),
-                            arrayOf("video/mp4"),
-                            null,
-                        )
+                        publishDownload(job)
                     }
                 }
+        }
+    }
+
+    /**
+     * Moves a finished download into the public Movies collection.
+     *
+     * The file stays in the app's folder when the copy does not fit, and the
+     * reason is shown to the user.
+     */
+    private fun publishDownload(job: DownloadJob) {
+        val context = getApplication<Application>()
+        val file = java.io.File(job.destination)
+        if (!file.exists()) return
+        viewModelScope.launch {
+            // The file is copied into the media store, which is a lot of
+            // work for a large film and must not run on the main thread.
+            withContext(Dispatchers.IO) {
+                DownloadStorage.publish(context, file)
+            }.let { result ->
+                if (result is DownloadStorage.Result.Failed) {
+                    _state.update { it.copy(error = result.reason) }
+                }
+            }
         }
     }
 
@@ -326,7 +348,7 @@ class MovieBoxViewModel(app: Application) : AndroidViewModel(app) {
 
     fun resumeDownload(job: DownloadJob) {
         viewModelScope.launch {
-            val destinationBase = getApplication<Application>().getExternalFilesDir(null)?.absolutePath
+            val destinationBase = DownloadStorage.workingDirectory(getApplication()).absolutePath
             // Re-resolve source to guarantee a fresh, non-expired signed CDN URL
             if (job.subjectId.isNotBlank() && job.provider.isNotBlank()) {
                 runCatching {
