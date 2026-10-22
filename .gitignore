@@ -15,3 +15,6 @@ android/app/src/main/jniLibs/
 keystore.properties
 *.jks
 *.keystore
+
+# Kotlin build output
+android/.kotlin/
