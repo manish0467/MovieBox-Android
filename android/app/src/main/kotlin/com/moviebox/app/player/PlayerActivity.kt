@@ -273,13 +273,20 @@ class PlayerActivity : ComponentActivity() {
             }
         })
 
+        // Keep Compose's transport readout in step with the player without coupling it to disk I/O.
+        lifecycleScope.launch {
+            while (isActive) {
+                delay(250)
+                if (player?.playWhenReady == true) updateProgressState()
+            }
+        }
+
         // Periodic watch progress recording back to the bridge
         lifecycleScope.launch {
             while (isActive) {
                 delay(4000)
                 if (player?.isPlaying == true) {
                     saveProgress()
-                    updateProgressState()
                 }
             }
         }
@@ -298,12 +305,7 @@ class PlayerActivity : ComponentActivity() {
                         factory = { context ->
                             PlayerView(context).apply {
                                 player = exoPlayer
-                                useController = true
-                                setControllerVisibilityListener(PlayerView.ControllerVisibilityListener { visibility ->
-                                    val visible = visibility == View.VISIBLE
-                                    viewModel.setControlsVisible(visible)
-                                    setSystemBarsVisible(visible)
-                                })
+                                useController = false
                                 playerViewRef = this
                                 applySubtitleStyle()
                                 // Once the subtitle customizer draws cues itself,
@@ -367,17 +369,24 @@ class PlayerActivity : ComponentActivity() {
                             handleGestureEnd(gesture)
                         },
                         onTapSurface = {
-                            playerViewRef?.let { pv ->
-                                if (pv.isControllerFullyVisible) {
-                                    pv.hideController()
-                                    viewModel.setControlsVisible(false)
-                                    setSystemBarsVisible(false)
-                                } else {
-                                    pv.showController()
-                                    viewModel.setControlsVisible(true)
-                                    setSystemBarsVisible(true)
-                                }
-                            } ?: viewModel.toggleControls()
+                            val visible = !viewModel.uiState.value.controlsVisible
+                            viewModel.setControlsVisible(visible)
+                            setSystemBarsVisible(visible)
+                        },
+                        onPlayPause = {
+                            if (exoPlayer.isPlaying || exoPlayer.playWhenReady) exoPlayer.pause() else exoPlayer.play()
+                        },
+                        onSeekPreview = viewModel::setSeekScrubPosition,
+                        onSeekCommit = { target -> exoPlayer.seekTo(target) },
+                        onSkipBack = { exoPlayer.seekTo((exoPlayer.currentPosition - 10_000L).coerceAtLeast(0L)) },
+                        onSkipForward = {
+                            val duration = exoPlayer.duration
+                            val target = exoPlayer.currentPosition + 10_000L
+                            exoPlayer.seekTo(if (duration > 0L) target.coerceAtMost(duration) else target)
+                        },
+                        onHideControls = {
+                            viewModel.setControlsVisible(false)
+                            setSystemBarsVisible(false)
                         },
                     )
                 }
@@ -594,18 +603,8 @@ class PlayerActivity : ComponentActivity() {
         updateScreenAwake()
         viewModel.setInPipMode(isInPictureInPictureMode)
         features.lock.onPipChanged(isInPictureInPictureMode)
-        playerViewRef?.apply {
-            useController = !isInPictureInPictureMode
-            if (!isInPictureInPictureMode) {
-                // A locked player stays hidden when it returns from PiP.
-                if (!features.lock.isLocked.value) {
-                    showController()
-                    viewModel.setControlsVisible(true)
-                }
-            } else {
-                hideController()
-                viewModel.setControlsVisible(false)
-            }
+        if (!isInPictureInPictureMode && !features.lock.isLocked.value) {
+            viewModel.setControlsVisible(true)
         }
     }
 

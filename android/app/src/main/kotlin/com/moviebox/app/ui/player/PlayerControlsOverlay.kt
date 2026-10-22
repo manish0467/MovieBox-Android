@@ -37,6 +37,12 @@ fun PlayerControlsOverlay(
     onDragStep: (GestureType, deltaX: Float, deltaY: Float, totalX: Float, totalY: Float) -> Unit,
     onDragEnd: (GestureType) -> Unit,
     onTapSurface: () -> Unit,
+    onPlayPause: () -> Unit,
+    onSeekPreview: (Long?) -> Unit,
+    onSeekCommit: (Long) -> Unit,
+    onSkipBack: () -> Unit,
+    onSkipForward: () -> Unit,
+    onHideControls: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val locked by features.lock.isLocked.collectAsState()
@@ -87,6 +93,17 @@ fun PlayerControlsOverlay(
             uiState = uiState,
             features = features,
             modifier = Modifier.fillMaxSize(),
+        )
+
+        PlayerTransportControls(
+            uiState = uiState,
+            onPlayPause = onPlayPause,
+            onSeekPreview = onSeekPreview,
+            onSeekCommit = onSeekCommit,
+            onSkipBack = onSkipBack,
+            onSkipForward = onSkipForward,
+            onHideControls = onHideControls,
+            modifier = Modifier.align(Alignment.BottomCenter),
         )
 
         if (!uiState.isInPipMode) {
