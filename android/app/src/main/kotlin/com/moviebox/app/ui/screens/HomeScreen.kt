@@ -155,10 +155,9 @@ fun HomeScreen(
     if (showAppearance) {
         SettingsDialog(
             current = themeKey,
-            onSelect = {
-                onThemeSelected(it)
-                showAppearance = false
-            },
+            // Keep the sheet open: the whole app re-themes live, so the picker
+            // doubles as the preview. Close is the explicit dismiss.
+            onSelect = { onThemeSelected(it) },
             updateState = updateState,
             onCheckForUpdates = onCheckForUpdates,
             onInstallUpdate = onInstallUpdate,
