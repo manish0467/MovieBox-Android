@@ -31,6 +31,7 @@ dependency on the `v0.1.28` tag.
   Bengali, Hindi and Spanish: every user-visible label comes from the resources
 - **Audio track picker** for files with multiple in-file audio tracks
 - **Sleep timer** for 5–60 minutes or the end of the current episode
+- Fixed a crash when opening 4KHDHub titles
 
 ## Next release candidates
 
