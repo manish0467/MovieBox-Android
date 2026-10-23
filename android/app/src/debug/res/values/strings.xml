@@ -1,0 +1,9 @@
+<resources>
+    <string name="debug_open_url_title">Open a media URL</string>
+    <string name="debug_url_hint">Video URL</string>
+    <string name="debug_subtitle_hint">Subtitle URL (optional)</string>
+    <string name="debug_media_title_hint">Title (optional)</string>
+    <string name="debug_headers_hint">Headers (one Name=Value per line, optional)</string>
+    <string name="debug_open_player">Open player</string>
+    <string name="debug_url_required">Enter a video URL</string>
+</resources>
