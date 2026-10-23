@@ -189,6 +189,14 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+/**
+ * Builds a route for the details destination. Encoding provider and subjectId with
+ * [Uri.encode] is mandatory because route segments in Navigation Compose are slash-delimited;
+ * providers such as 4KHDHub use URL paths with slashes as their subject IDs.
+ */
+private fun detailsRoute(provider: String, subjectId: String): String =
+    "details/${Uri.encode(provider)}/${Uri.encode(subjectId)}"
+
 @Composable
 private fun MovieBoxApp(
     homeViewModel: MovieBoxViewModel,
@@ -231,7 +239,7 @@ private fun MovieBoxApp(
                 onToggleFavorite = homeViewModel::toggleFavorite,
                 onOpenItem = { item ->
                     detailsViewModel.load(item.id.provider, item.id.value)
-                    navController.navigate("details/${item.id.provider}/${item.id.value}")
+                    navController.navigate(detailsRoute(item.id.provider, item.id.value))
                 },
                 onOpenHistoryItem = { historyItem ->
                     detailsViewModel.load(historyItem.provider, historyItem.subjectId)
@@ -241,7 +249,7 @@ private fun MovieBoxApp(
                     if (historyItem.episode > 0) {
                         detailsViewModel.selectEpisode(historyItem.episode)
                     }
-                    navController.navigate("details/${historyItem.provider}/${historyItem.subjectId}")
+                    navController.navigate(detailsRoute(historyItem.provider, historyItem.subjectId))
                 },
                 themeMode = themeMode,
                 onThemeSelected = homeViewModel::selectThemeMode,
