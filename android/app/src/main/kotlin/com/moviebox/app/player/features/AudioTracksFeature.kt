@@ -18,10 +18,51 @@ data class AudioTrackOption(
     val channelCount: Int,
 )
 
+internal data class AudioTrackFormat(
+    val groupId: String,
+    val trackIndex: Int,
+    val label: String?,
+    val language: String?,
+    val channelCount: Int,
+    val supported: Boolean,
+)
+
+internal data class AudioTrackPresentation(
+    val label: String,
+    val channelCountSuffix: Int?,
+)
+
 data class AudioTracksUiState(
     val options: List<AudioTrackOption> = emptyList(),
     val selectedGroupId: String? = null,
 )
+
+/** Maps supported formats to ordered options with one-based fallback numbers. */
+internal fun mapAudioTrackOptions(formats: List<AudioTrackFormat>): List<AudioTrackOption> =
+    formats.asSequence()
+        .filter { it.supported && it.groupId.isNotBlank() }
+        .mapIndexed { index, format ->
+            AudioTrackOption(
+                groupId = format.groupId,
+                trackIndex = format.trackIndex,
+                trackNumber = index + 1,
+                label = format.label?.takeIf(String::isNotBlank),
+                language = format.language?.takeIf(String::isNotBlank),
+                channelCount = format.channelCount,
+            )
+        }
+        .toList()
+
+/** Applies the display-name precedence and returns channels only when meaningful. */
+internal fun presentAudioTrack(
+    option: AudioTrackOption,
+    fallbackTrackLabel: String,
+): AudioTrackPresentation = AudioTrackPresentation(
+    label = option.label ?: option.language ?: fallbackTrackLabel,
+    channelCountSuffix = option.channelCount.takeIf { it > 1 },
+)
+
+internal fun shouldShowAudioTrackSection(usableTrackCount: Int): Boolean = usableTrackCount > 1
 
 /** Matches a session language preference to a track in the current media item. */
 internal fun preferredAudioTrack(
@@ -47,27 +88,22 @@ class AudioTracksFeature(
     /** Called from Player.Listener.onTracksChanged. */
     fun onTracks(tracks: Tracks) {
         val audioGroups = tracks.groups.filter { it.type == C.TRACK_TYPE_AUDIO }
-        var trackNumber = 0
-        val options = audioGroups.flatMap { group ->
+        val formats = audioGroups.flatMap { group ->
             val mediaGroup = group.mediaTrackGroup
             (0 until group.length)
-                .filter(group::isTrackSupported)
-                .mapNotNull { index ->
+                .map { index ->
                     val format = group.getTrackFormat(index)
-                    val id = mediaGroup.id
-                    id.takeIf(String::isNotBlank)?.let {
-                        trackNumber += 1
-                        AudioTrackOption(
-                            groupId = it,
-                            trackIndex = index,
-                            trackNumber = trackNumber,
-                            label = format.label?.takeIf(String::isNotBlank),
-                            language = format.language?.takeIf(String::isNotBlank),
-                            channelCount = format.channelCount,
-                        )
-                    }
+                    AudioTrackFormat(
+                        groupId = mediaGroup.id,
+                        trackIndex = index,
+                        label = format.label,
+                        language = format.language,
+                        channelCount = format.channelCount,
+                        supported = group.isTrackSupported(index),
+                    )
                 }
         }
+        val options = mapAudioTrackOptions(formats)
         groupsById = audioGroups.associate { it.mediaTrackGroup.id to it.mediaTrackGroup }
 
         val preferred = preferredAudioTrack(options, preferredLanguage)

@@ -1,15 +1,17 @@
 package com.moviebox.app.ui.player.audio
 
+import androidx.compose.foundation.layout.Column
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.material3.Text
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.foundation.layout.Column
 import com.moviebox.app.R
 import com.moviebox.app.player.features.AudioTracksFeature
+import com.moviebox.app.player.features.presentAudioTrack
+import com.moviebox.app.player.features.shouldShowAudioTrackSection
 import com.moviebox.app.ui.player.settings.SettingsOptionRow
 
 /**
@@ -24,7 +26,7 @@ fun AudioTracksSection(
 ) {
     if (!feature.available) return
     val state by feature.uiState.collectAsState()
-    if (state.options.size <= 1) return
+    if (!shouldShowAudioTrackSection(state.options.size)) return
 
     Column(modifier = modifier) {
         Text(
@@ -37,13 +39,18 @@ fun AudioTracksSection(
             onClick = feature::reset,
         )
         state.options.forEach { option ->
-            val baseLabel = option.label
-                ?: option.language
-                ?: stringResource(R.string.track_number, option.trackNumber)
-            val title = if (option.channelCount > 1) {
-                stringResource(R.string.audio_track_channels, baseLabel, option.channelCount)
+            val presentation = presentAudioTrack(
+                option,
+                fallbackTrackLabel = stringResource(R.string.track_number, option.trackNumber),
+            )
+            val title = if (presentation.channelCountSuffix != null) {
+                stringResource(
+                    R.string.audio_track_channels,
+                    presentation.label,
+                    presentation.channelCountSuffix,
+                )
             } else {
-                baseLabel
+                presentation.label
             }
             SettingsOptionRow(
                 title = title,
