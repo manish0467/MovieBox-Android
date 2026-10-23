@@ -1,0 +1,7 @@
+<resources>
+    <!-- Audio track picker strings -->
+    <string name="audio_track">Pista de audio</string>
+    <string name="player_audio">Audio</string>
+    <string name="track_number">Pista %1$d</string>
+    <string name="audio_track_channels">%1$s (%2$d canales)</string>
+</resources>

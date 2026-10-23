@@ -1,0 +1,7 @@
+<resources>
+    <!-- Audio track picker strings -->
+    <string name="audio_track">ऑडियो ट्रैक</string>
+    <string name="player_audio">ऑडियो</string>
+    <string name="track_number">ट्रैक %1$d</string>
+    <string name="audio_track_channels">%1$s (%2$d चैनल)</string>
+</resources>
