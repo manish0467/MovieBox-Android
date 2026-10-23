@@ -13,8 +13,13 @@ dependency on the `v0.1.28` tag.
 - Downloads: start, live progress, pause, resume (the signed URL is re-resolved
   when it expires), remove, open, and the finished file is indexed into the
   system media store
-- A colour scheme picker (system, light, dark, OLED black and three accents)
-  with Material 3 dynamic colour, stored by the engine and applied at startup
+- **Themes**: a palette picker with the app's own six schemes and the 22 Omarchy
+  palettes, each shown as a swatch drawn in its own colours; system keeps
+  Material 3 dynamic colour, and the choice is stored by the engine and applied
+  at startup
+- **Edge-to-edge and press feedback**: the system bars follow the theme, the
+  launch surface follows the system mode, and the cards and rows spring under a
+  press with a haptic
 - Localisation in Bengali, Hindi and Spanish
 - **Live TV**: add an M3U playlist by URL or file path, browse and search its
   channels, and play them; the playlist list is shared with the terminal
