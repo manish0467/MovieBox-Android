@@ -34,8 +34,7 @@ import com.moviebox.app.ui.screens.DetailsScreen
 import com.moviebox.app.ui.screens.HomeScreen
 import com.moviebox.app.ui.screens.LiveTvScreen
 import com.moviebox.app.ui.theme.MovieBoxTheme
-import com.moviebox.app.ui.theme.MovieBoxThemeMode
-import com.moviebox.app.ui.theme.isDark
+import com.moviebox.app.ui.theme.themeIsDark
 import kotlinx.coroutines.launch
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
@@ -58,8 +57,8 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         handleIntent(intent)
         setContent {
-            val themeMode = homeViewModel.themeMode
-            val dark = themeMode.isDark(isSystemInDarkTheme())
+            val themeKey = homeViewModel.themeKey
+            val dark = themeIsDark(themeKey, isSystemInDarkTheme())
             // The status and navigation icons follow the app's own theme, which
             // can be forced light or dark independently of the system.
             SideEffect {
@@ -68,13 +67,13 @@ class MainActivity : ComponentActivity() {
                     isAppearanceLightNavigationBars = !dark
                 }
             }
-            MovieBoxTheme(mode = themeMode) {
+            MovieBoxTheme(themeKey = themeKey) {
                 MovieBoxApp(
                     homeViewModel = homeViewModel,
                     detailsViewModel = detailsViewModel,
                     liveTvViewModel = liveTvViewModel,
-                    themeMode = themeMode,
-                    onThemeSelected = homeViewModel::selectThemeMode,
+                    themeKey = themeKey,
+                    onThemeSelected = homeViewModel::selectTheme,
                     onPlay = ::launchPlayer,
                     onOpenDownload = ::openDownloadedMedia,
                     onDownloadRelease = ::downloadRelease,
@@ -217,8 +216,8 @@ private fun MovieBoxApp(
     homeViewModel: MovieBoxViewModel,
     detailsViewModel: DetailsViewModel,
     liveTvViewModel: LiveTvViewModel,
-    themeMode: MovieBoxThemeMode,
-    onThemeSelected: (MovieBoxThemeMode) -> Unit,
+    themeKey: String,
+    onThemeSelected: (String) -> Unit,
     onPlay: (
         source: PlaybackSource,
         title: String,
@@ -266,8 +265,8 @@ private fun MovieBoxApp(
                     }
                     navController.navigate(detailsRoute(historyItem.provider, historyItem.subjectId))
                 },
-                themeMode = themeMode,
-                onThemeSelected = homeViewModel::selectThemeMode,
+                themeKey = themeKey,
+                onThemeSelected = homeViewModel::selectTheme,
                 onOpenLiveTv = { navController.navigate("live") },
                 updateState = updateState,
                 onCheckForUpdates = homeViewModel::checkForUpdates,

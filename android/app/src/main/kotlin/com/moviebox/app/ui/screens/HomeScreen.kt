@@ -1,6 +1,7 @@
 package com.moviebox.app.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
@@ -25,10 +26,12 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
@@ -53,7 +56,6 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -101,7 +103,8 @@ import com.moviebox.app.ui.MainTab
 import com.moviebox.app.ui.UpdateStatus
 import com.moviebox.app.ui.UpdateState
 import com.moviebox.app.ui.components.pressScale
-import com.moviebox.app.ui.theme.MovieBoxThemeMode
+import com.moviebox.app.ui.theme.ThemeCatalog
+import com.moviebox.app.ui.theme.ThemeEntry
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 
@@ -122,8 +125,8 @@ fun HomeScreen(
     onRemoveDownload: (String) -> Unit = {},
     onOpenDownload: (DownloadJob) -> Unit = {},
     onRefreshDownloads: () -> Unit = {},
-    themeMode: MovieBoxThemeMode = MovieBoxThemeMode.SYSTEM,
-    onThemeSelected: (MovieBoxThemeMode) -> Unit = {},
+    themeKey: String = "system",
+    onThemeSelected: (String) -> Unit = {},
     onOpenLiveTv: () -> Unit = {},
     updateState: UpdateState = UpdateState(),
     onCheckForUpdates: () -> Unit = {},
@@ -151,7 +154,7 @@ fun HomeScreen(
 
     if (showAppearance) {
         SettingsDialog(
-            current = themeMode,
+            current = themeKey,
             onSelect = {
                 onThemeSelected(it)
                 showAppearance = false
@@ -1149,23 +1152,14 @@ private fun DownloadJobCard(
 /** The settings: the colour scheme, the update check and the diagnostics copy. */
 @Composable
 private fun SettingsDialog(
-    current: MovieBoxThemeMode,
-    onSelect: (MovieBoxThemeMode) -> Unit,
+    current: String,
+    onSelect: (String) -> Unit,
     updateState: UpdateState,
     onCheckForUpdates: () -> Unit,
     onInstallUpdate: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     val context = LocalContext.current
-    val options = listOf(
-        MovieBoxThemeMode.SYSTEM to R.string.theme_system,
-        MovieBoxThemeMode.LIGHT to R.string.theme_light,
-        MovieBoxThemeMode.DARK to R.string.theme_dark,
-        MovieBoxThemeMode.OLED to R.string.theme_oled,
-        MovieBoxThemeMode.DARK_BLUE to R.string.theme_blue,
-        MovieBoxThemeMode.DARK_GREEN to R.string.theme_green,
-        MovieBoxThemeMode.DARK_ROSE to R.string.theme_rose,
-    )
     val busy = updateState.status == UpdateStatus.CHECKING ||
         updateState.status == UpdateStatus.DOWNLOADING
     AlertDialog(
@@ -1177,24 +1171,12 @@ private fun SettingsDialog(
                     text = stringResource(R.string.theme),
                     style = MaterialTheme.typography.labelLarge,
                 )
-                options.forEach { (mode, label) ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .selectable(
-                                selected = current == mode,
-                                onClick = { onSelect(mode) },
-                            )
-                            .padding(vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        RadioButton(
-                            selected = current == mode,
-                            onClick = { onSelect(mode) },
-                        )
-                        Spacer(Modifier.width(12.dp))
-                        Text(stringResource(label))
-                    }
+                ThemeCatalog.forEach { entry ->
+                    ThemeRow(
+                        entry = entry,
+                        selected = current == entry.key,
+                        onSelect = { onSelect(entry.key) },
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))
@@ -1269,4 +1251,84 @@ private fun SettingsDialog(
             TextButton(onClick = onDismiss) { Text(stringResource(R.string.close)) }
         },
     )
+}
+
+/**
+ * One theme in the picker. The swatch is drawn in that theme's own colours, so
+ * it reads as a chip of the theme rather than of the one currently applied.
+ */
+@Composable
+private fun ThemeRow(
+    entry: ThemeEntry,
+    selected: Boolean,
+    onSelect: () -> Unit,
+) {
+    val scheme = MaterialTheme.colorScheme
+    val palette = entry.palette
+    val ground = palette?.ground ?: scheme.background
+    val accent = palette?.accent ?: scheme.primary
+    val ink = palette?.ink ?: scheme.onBackground
+    val amber = palette?.amber ?: scheme.tertiary
+    val dark = palette?.dark ?: isSystemInDarkTheme()
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .selectable(selected = selected, onClick = onSelect)
+            .padding(vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Row(
+            modifier = Modifier
+                .clip(RoundedCornerShape(4.dp))
+                .background(ground)
+                .border(
+                    1.dp,
+                    palette?.frameBorder ?: scheme.outlineVariant,
+                    RoundedCornerShape(4.dp),
+                )
+                .padding(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(3.dp),
+        ) {
+            listOf(accent, ink, amber).forEach { colour ->
+                Box(
+                    Modifier
+                        .size(8.dp)
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(colour),
+                )
+            }
+        }
+        Spacer(Modifier.width(12.dp))
+        Column(Modifier.weight(1f)) {
+            Text(
+                text = themeLabel(entry.key),
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (selected) scheme.primary else scheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = stringResource(if (dark) R.string.theme_dark else R.string.theme_light),
+                style = MaterialTheme.typography.labelSmall,
+                color = scheme.onSurfaceVariant,
+            )
+        }
+        if (selected) {
+            Icon(Icons.Filled.Check, contentDescription = null, tint = scheme.primary)
+        }
+    }
+}
+
+/** The picker's label for a key: the app's own themes are translated, the
+ *  Omarchy ones are proper nouns and stay as they are. */
+@Composable
+private fun themeLabel(key: String): String = when (key) {
+    "system" -> stringResource(R.string.theme_system)
+    "light" -> stringResource(R.string.theme_light)
+    "dark" -> stringResource(R.string.theme_dark)
+    "oled" -> stringResource(R.string.theme_oled)
+    "blue" -> stringResource(R.string.theme_blue)
+    "green" -> stringResource(R.string.theme_green)
+    "rose" -> stringResource(R.string.theme_rose)
+    else -> key.replace('-', ' ')
 }

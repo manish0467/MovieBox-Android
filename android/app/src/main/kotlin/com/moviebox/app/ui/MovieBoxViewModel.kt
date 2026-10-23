@@ -17,8 +17,7 @@ import com.moviebox.app.core.MovieBoxRepository
 import com.moviebox.app.core.ProviderInfo
 import com.moviebox.app.core.UpdateChecker
 import com.moviebox.app.core.WatchHistoryItem
-import com.moviebox.app.ui.theme.MovieBoxThemeMode
-import com.moviebox.app.ui.theme.themeModeFromName
+import com.moviebox.app.ui.theme.themeKeyFromName
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -108,8 +107,8 @@ class MovieBoxViewModel(app: Application) : AndroidViewModel(app) {
     private val _state = MutableStateFlow(HomeUiState())
     val state: StateFlow<HomeUiState> = _state.asStateFlow()
 
-    /** The colour scheme the app uses, loaded from the engine. */
-    var themeMode: MovieBoxThemeMode by mutableStateOf(MovieBoxThemeMode.SYSTEM)
+    /** The theme key the app uses, loaded from the engine. */
+    var themeKey: String by mutableStateOf("system")
         private set
 
     private var searchJob: Job? = null
@@ -126,7 +125,7 @@ class MovieBoxViewModel(app: Application) : AndroidViewModel(app) {
     private fun loadThemeMode() {
         viewModelScope.launch {
             runCatching { repository.getThemeMode() }
-                .onSuccess { mode -> themeMode = themeModeFromName(mode) }
+                .onSuccess { mode -> themeKey = themeKeyFromName(mode) }
         }
     }
 
@@ -195,11 +194,11 @@ class MovieBoxViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    /** Stores a new colour scheme and applies it immediately. */
-    fun selectThemeMode(mode: MovieBoxThemeMode) {
-        themeMode = mode
+    /** Stores a new theme key and applies it immediately. */
+    fun selectTheme(key: String) {
+        themeKey = key
         viewModelScope.launch {
-            runCatching { repository.setThemeMode(mode.name.lowercase()) }
+            runCatching { repository.setThemeMode(key) }
         }
     }
 
