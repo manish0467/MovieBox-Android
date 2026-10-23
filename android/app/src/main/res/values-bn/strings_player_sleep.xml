@@ -1,0 +1,8 @@
+<resources>
+    <!-- Sleep timer strings -->
+    <string name="sleep_timer">স্লিপ টাইমার</string>
+    <string name="sleep_timer_minutes">%1$d মিনিট</string>
+    <string name="sleep_timer_end_of_episode">পর্বের শেষে</string>
+    <string name="sleep_timer_remaining">আর %1$s</string>
+    <string name="sleep_timer_finished">স্লিপ টাইমারের কারণে বিরতি দেওয়া হয়েছে</string>
+</resources>

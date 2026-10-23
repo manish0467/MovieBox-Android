@@ -1,0 +1,8 @@
+<resources>
+    <!-- Sleep timer strings -->
+    <string name="sleep_timer">Temporizador de apagado</string>
+    <string name="sleep_timer_minutes">%1$d min</string>
+    <string name="sleep_timer_end_of_episode">Al terminar el episodio</string>
+    <string name="sleep_timer_remaining">Quedan %1$s</string>
+    <string name="sleep_timer_finished">Pausado por el temporizador de apagado</string>
+</resources>
