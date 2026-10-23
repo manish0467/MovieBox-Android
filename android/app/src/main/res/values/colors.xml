@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The launch surface. Compose paints the themed background over it, but
+         the system splash and the first frame are drawn before that, so this
+         follows the system light/dark mode. -->
+    <color name="window_background">#FFFBFE</color>
+</resources>

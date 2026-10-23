@@ -47,7 +47,7 @@
             android:exported="false"
             android:launchMode="singleTask"
             android:supportsPictureInPicture="true"
-            android:theme="@style/Theme.MovieBox" />
+            android:theme="@style/Theme.MovieBox.Player" />
     </application>
 
 </manifest>
