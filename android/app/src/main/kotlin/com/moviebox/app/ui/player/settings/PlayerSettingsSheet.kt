@@ -55,6 +55,7 @@ fun PlayerSettingsSheet(
     onSelectResolution: (label: String, height: Int?) -> Unit,
     onSelectSubtitle: (SubtitleOption?) -> Unit,
     onUpdateSubtitleStyle: (textSizeSp: Float, textColor: Int, backgroundColor: Int) -> Unit,
+    onOpenExternal: () -> Unit = {},
 ) {
     val pages = listOf(
         PlayerSettingsPage.PLAYBACK,
@@ -113,6 +114,7 @@ fun PlayerSettingsSheet(
                     features = features,
                     onSelectSpeed = onSelectSpeed,
                     onDismiss = onDismiss,
+                    onOpenExternal = onOpenExternal,
                 )
 
                 PlayerSettingsPage.SUBTITLES -> SubtitlesPage(

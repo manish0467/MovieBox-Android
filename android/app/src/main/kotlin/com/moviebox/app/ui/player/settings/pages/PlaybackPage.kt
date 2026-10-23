@@ -27,6 +27,7 @@ fun PlaybackPage(
     features: PlayerFeatures,
     onSelectSpeed: (Float) -> Unit,
     onDismiss: () -> Unit,
+    onOpenExternal: () -> Unit = {},
 ) {
     val playbackSpeeds = listOf(0.25f, 0.5f, 0.75f, 1.0f, 1.25f, 1.5f, 1.75f, 2.0f)
 
@@ -63,6 +64,16 @@ fun PlaybackPage(
             item { AudioTracksSection(feature = features.audio) }
             item { SleepTimerSection(feature = features.sleep) }
             item { SpeedBoostHint(feature = features.boost) }
+            item {
+                SettingsOptionRow(
+                    title = "Open in external player",
+                    selected = false,
+                    onClick = {
+                        onDismiss()
+                        onOpenExternal()
+                    },
+                )
+            }
         }
     }
 }

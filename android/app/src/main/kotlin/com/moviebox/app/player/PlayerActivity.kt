@@ -2,7 +2,9 @@ package com.moviebox.app.player
 
 import android.app.PictureInPictureParams
 import android.Manifest
+import android.content.ActivityNotFoundException
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.media.AudioManager
@@ -11,6 +13,7 @@ import android.os.Build
 import android.os.Bundle
 import android.view.View
 import android.view.WindowManager
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.addCallback
 import androidx.activity.compose.setContent
@@ -388,6 +391,7 @@ class PlayerActivity : ComponentActivity() {
                             viewModel.setControlsVisible(false)
                             setSystemBarsVisible(false)
                         },
+                        onOpenExternal = { openInExternalPlayer() },
                     )
                 }
             }
@@ -791,6 +795,46 @@ class PlayerActivity : ComponentActivity() {
         url.contains(".mpd") -> MimeTypes.APPLICATION_MPD
         url.contains(".m3u8") -> MimeTypes.APPLICATION_M3U8
         else -> null
+    }
+
+    private fun openInExternalPlayer() {
+        if (currentMediaUrl.isBlank()) return
+        val posMs = player?.currentPosition ?: 0L
+        player?.pause()
+
+        val headersColon = headersMap.map { (k, v) -> "$k: $v" }.toTypedArray()
+        val headersInterleaved = headersMap.flatMap { (k, v) -> listOf(k, v) }.toTypedArray()
+        val headersBundle = Bundle().apply {
+            headersMap.forEach { (k, v) -> putString(k, v) }
+        }
+
+        val viewIntent = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(Uri.parse(currentMediaUrl), "video/*")
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION
+
+            putExtra(Intent.EXTRA_TITLE, title)
+            putExtra("title", title)
+
+            // Playback position (support VLC, MX Player, MPV, Just Player)
+            putExtra("position", posMs)
+            putExtra("position", posMs.toInt())
+            putExtra("from_start", false)
+
+            // Header formats
+            putExtra("headers", headersInterleaved)
+            putExtra("http-header-fields", headersColon)
+            putExtra("android.media.intent.extra.HTTP_HEADERS", headersBundle)
+
+            putExtra("return_result", true)
+        }
+
+        try {
+            val chooser = Intent.createChooser(viewIntent, "Play with...")
+            chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            startActivity(chooser)
+        } catch (e: ActivityNotFoundException) {
+            Toast.makeText(this, "No external video player found (e.g. VLC or MPV)", Toast.LENGTH_SHORT).show()
+        }
     }
 
     companion object {

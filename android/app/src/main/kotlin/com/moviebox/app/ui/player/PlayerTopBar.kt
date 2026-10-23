@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.HighQuality
 import androidx.compose.material.icons.filled.PictureInPictureAlt
 import androidx.compose.material.icons.filled.Speed
@@ -46,6 +47,7 @@ fun PlayerTopBar(
     onBack: () -> Unit,
     onTogglePip: () -> Unit,
     onOpenDialog: (PlayerDialogType) -> Unit,
+    onOpenExternal: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     AnimatedVisibility(
@@ -156,6 +158,15 @@ fun PlayerTopBar(
                 Icon(
                     Icons.Filled.PictureInPictureAlt,
                     contentDescription = stringResource(R.string.picture_in_picture),
+                    tint = Color.White,
+                )
+            }
+
+            // Open in external player button (e.g. VLC, MPV)
+            IconButton(onClick = onOpenExternal) {
+                Icon(
+                    Icons.AutoMirrored.Filled.OpenInNew,
+                    contentDescription = "Open in external player",
                     tint = Color.White,
                 )
             }

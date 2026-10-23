@@ -43,6 +43,7 @@ fun PlayerControlsOverlay(
     onSkipBack: () -> Unit,
     onSkipForward: () -> Unit,
     onHideControls: () -> Unit,
+    onOpenExternal: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val locked by features.lock.isLocked.collectAsState()
@@ -79,6 +80,7 @@ fun PlayerControlsOverlay(
             onBack = onBack,
             onTogglePip = onTogglePip,
             onOpenDialog = onOpenDialog,
+            onOpenExternal = onOpenExternal,
             modifier = Modifier.align(Alignment.TopCenter),
         )
 
@@ -126,6 +128,7 @@ fun PlayerControlsOverlay(
                     onSelectResolution = onSelectResolution,
                     onSelectSubtitle = onSelectSubtitle,
                     onUpdateSubtitleStyle = onUpdateSubtitleStyle,
+                    onOpenExternal = onOpenExternal,
                 )
 
                 else -> Unit
