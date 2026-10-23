@@ -169,7 +169,7 @@ class PlayerActivity : ComponentActivity() {
                 scope = lifecycleScope,
                 onPause = { player?.pause() },
             ),
-            subtitles = SubtitleTimingFeature(),
+            subtitles = SubtitleTimingFeature(positionMs = { player?.currentPosition ?: 0L }),
             boost = SpeedBoostFeature(
                 currentSpeed = { viewModel.uiState.value.playbackSpeed },
                 onSpeedChanged = { speed ->
