@@ -29,6 +29,16 @@ dependency on the `v0.1.28` tag.
   scale, and the icon buttons that have no visible label announce what they do
 - **The whole interface is localised**, the player and its dialogs included, in
   Bengali, Hindi and Spanish: every user-visible label comes from the resources
+- **Audio track picker** for files with multiple in-file audio tracks
+- **Sleep timer** for 5–60 minutes or the end of the current episode
+
+## Next release candidates
+
+- Long-press speed boost
+- Lock mode
+- Subtitle timing and styling customizer
+- Fix for player top buttons that can sit under the status bar on some devices
+- Native-speaker review of Bengali and Hindi strings
 
 ## Now — getting it onto real devices
 

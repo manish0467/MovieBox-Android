@@ -1,8 +1,0 @@
-<resources>
-    <!-- Sleep timer strings -->
-    <string name="sleep_timer">स्लीप टाइमर</string>
-    <string name="sleep_timer_minutes">%1$d मिनट</string>
-    <string name="sleep_timer_end_of_episode">एपिसोड के अंत में</string>
-    <string name="sleep_timer_remaining">%1$s बाकी</string>
-    <string name="sleep_timer_finished">स्लीप टाइमर द्वारा रोका गया</string>
-</resources>

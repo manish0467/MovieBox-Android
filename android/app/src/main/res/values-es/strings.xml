@@ -81,4 +81,14 @@
     <string name="diagnostics_hint">Adjúntalo a un informe de error. Incluye la versión, el dispositivo y las últimas líneas del registro.</string>
     <string name="copy_diagnostic_info">Copiar información de diagnóstico</string>
     <string name="diagnostics_copied">Información de diagnóstico copiada</string>
+    <!-- 0.10.0 player feature strings: audio picker and sleep timer. -->
+    <string name="audio_track">Pista de audio</string>
+    <string name="player_audio">Audio</string>
+    <string name="track_number">Pista %1$d</string>
+    <string name="audio_track_channels">%1$s (%2$d canales)</string>
+    <string name="sleep_timer">Temporizador de apagado</string>
+    <string name="sleep_timer_minutes">%1$d min</string>
+    <string name="sleep_timer_end_of_episode">Al terminar el episodio</string>
+    <string name="sleep_timer_remaining">Quedan %1$s</string>
+    <string name="sleep_timer_finished">Pausado por el temporizador de apagado</string>
 </resources>

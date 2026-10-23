@@ -95,4 +95,14 @@
     <string name="player_resolution">Resolution (%1$s)</string>
     <string name="player_subtitles">Subtitles (%1$s)</string>
     <string name="player_settings">Player settings</string><string name="playback">Playback</string>
+    <!-- 0.10.0 player feature strings: audio picker and sleep timer. -->
+    <string name="audio_track">Audio track</string>
+    <string name="player_audio">Audio</string>
+    <string name="track_number">Track %1$d</string>
+    <string name="audio_track_channels">%1$s (%2$d channels)</string>
+    <string name="sleep_timer">Sleep timer</string>
+    <string name="sleep_timer_minutes">%1$d min</string>
+    <string name="sleep_timer_end_of_episode">End of episode</string>
+    <string name="sleep_timer_remaining">%1$s left</string>
+    <string name="sleep_timer_finished">Paused by the sleep timer</string>
 </resources>

@@ -1,8 +1,0 @@
-<resources>
-    <!-- Sleep timer strings -->
-    <string name="sleep_timer">Sleep timer</string>
-    <string name="sleep_timer_minutes">%1$d min</string>
-    <string name="sleep_timer_end_of_episode">End of episode</string>
-    <string name="sleep_timer_remaining">%1$s left</string>
-    <string name="sleep_timer_finished">Paused by the sleep timer</string>
-</resources>

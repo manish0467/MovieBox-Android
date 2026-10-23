@@ -81,4 +81,14 @@
     <string name="diagnostics_hint">इसे बग रिपोर्ट के साथ जोड़ें। इसमें संस्करण, डिवाइस और हाल की लॉग पंक्तियाँ होती हैं।</string>
     <string name="copy_diagnostic_info">डायग्नोस्टिक जानकारी कॉपी करें</string>
     <string name="diagnostics_copied">डायग्नोस्टिक जानकारी कॉपी हो गई</string>
+    <!-- 0.10.0 player feature strings: audio picker and sleep timer. -->
+    <string name="audio_track">ऑडियो ट्रैक</string>
+    <string name="player_audio">ऑडियो</string>
+    <string name="track_number">ट्रैक %1$d</string>
+    <string name="audio_track_channels">%1$s (%2$d चैनल)</string>
+    <string name="sleep_timer">स्लीप टाइमर</string>
+    <string name="sleep_timer_minutes">%1$d मिनट</string>
+    <string name="sleep_timer_end_of_episode">एपिसोड के अंत में</string>
+    <string name="sleep_timer_remaining">%1$s बाकी</string>
+    <string name="sleep_timer_finished">स्लीप टाइमर द्वारा रोका गया</string>
 </resources>

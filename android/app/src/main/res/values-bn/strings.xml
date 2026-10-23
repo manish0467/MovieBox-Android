@@ -81,4 +81,14 @@
     <string name="diagnostics_hint">এটি একটি বাগ রিপোর্টে সংযুক্ত করুন। এতে ভার্সন, ডিভাইস এবং সাম্প্রতিক লগ লাইন থাকে।</string>
     <string name="copy_diagnostic_info">ডায়াগনস্টিক তথ্য কপি করুন</string>
     <string name="diagnostics_copied">ডায়াগনস্টিক তথ্য কপি হয়েছে</string>
+    <!-- 0.10.0 player feature strings: audio picker and sleep timer. -->
+    <string name="audio_track">অডিও ট্র্যাক</string>
+    <string name="player_audio">অডিও</string>
+    <string name="track_number">ট্র্যাক %1$d</string>
+    <string name="audio_track_channels">%1$s (%2$d চ্যানেল)</string>
+    <string name="sleep_timer">স্লিপ টাইমার</string>
+    <string name="sleep_timer_minutes">%1$d মিনিট</string>
+    <string name="sleep_timer_end_of_episode">পর্বের শেষে</string>
+    <string name="sleep_timer_remaining">আর %1$s</string>
+    <string name="sleep_timer_finished">স্লিপ টাইমারের কারণে বিরতি দেওয়া হয়েছে</string>
 </resources>
