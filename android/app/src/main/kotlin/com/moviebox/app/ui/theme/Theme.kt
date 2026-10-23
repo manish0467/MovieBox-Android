@@ -1,7 +1,10 @@
 package com.moviebox.app.ui.theme
 
 import android.os.Build
+import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
@@ -9,6 +12,7 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
@@ -91,6 +95,15 @@ fun MovieBoxTheme(
     content = content,
 )
 
+/** Whether a mode paints a dark surface, for the bars and the root background. */
+fun MovieBoxThemeMode.isDark(systemDark: Boolean): Boolean = when (this) {
+    MovieBoxThemeMode.LIGHT -> false
+    MovieBoxThemeMode.DARK, MovieBoxThemeMode.OLED,
+    MovieBoxThemeMode.DARK_BLUE, MovieBoxThemeMode.DARK_GREEN,
+    MovieBoxThemeMode.DARK_ROSE -> true
+    MovieBoxThemeMode.SYSTEM -> systemDark
+}
+
 @Composable
 fun MovieBoxTheme(
     mode: MovieBoxThemeMode,
@@ -98,13 +111,7 @@ fun MovieBoxTheme(
     useDynamicColor: Boolean = true,
     content: @Composable () -> Unit,
 ) {
-    val effectiveDark = when (mode) {
-        MovieBoxThemeMode.LIGHT -> false
-        MovieBoxThemeMode.DARK, MovieBoxThemeMode.OLED,
-        MovieBoxThemeMode.DARK_BLUE, MovieBoxThemeMode.DARK_GREEN,
-        MovieBoxThemeMode.DARK_ROSE -> true
-        MovieBoxThemeMode.SYSTEM -> darkTheme
-    }
+    val effectiveDark = mode.isDark(darkTheme)
     val context = LocalContext.current
     val colors = if (
         mode == MovieBoxThemeMode.SYSTEM && useDynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
@@ -113,5 +120,9 @@ fun MovieBoxTheme(
     } else {
         scheme(mode, effectiveDark)
     }
-    MaterialTheme(colorScheme = colors, typography = MovieBoxTypography, content = content)
+    MaterialTheme(colorScheme = colors, typography = MovieBoxTypography) {
+        // Edge-to-edge leaves the window background visible between screens and
+        // during navigation transitions, so the theme paints the root itself.
+        Box(Modifier.fillMaxSize().background(colors.background)) { content() }
+    }
 }

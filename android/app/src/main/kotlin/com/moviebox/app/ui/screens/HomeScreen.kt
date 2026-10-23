@@ -1,7 +1,6 @@
 package com.moviebox.app.ui.screens
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
@@ -101,6 +100,7 @@ import com.moviebox.app.ui.HomeUiState
 import com.moviebox.app.ui.MainTab
 import com.moviebox.app.ui.UpdateStatus
 import com.moviebox.app.ui.UpdateState
+import com.moviebox.app.ui.components.pressScale
 import com.moviebox.app.ui.theme.MovieBoxThemeMode
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -674,7 +674,7 @@ private fun ContinueWatchingCard(item: WatchHistoryItem, onClick: () -> Unit) {
         modifier = Modifier
             .width(180.dp)
             .clip(RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick),
+            .pressScale(onClick = onClick),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
     ) {
         Column {
@@ -737,7 +737,7 @@ private fun HistoryRow(item: WatchHistoryItem, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .pressScale(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -800,7 +800,7 @@ private fun FavoriteCard(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick),
+            .pressScale(onClick = onClick),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Box(
@@ -859,7 +859,7 @@ private fun PosterCard(item: CatalogItem, onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick),
+            .pressScale(onClick = onClick),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Box(

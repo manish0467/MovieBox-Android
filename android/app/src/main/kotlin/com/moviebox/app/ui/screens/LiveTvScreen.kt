@@ -1,6 +1,5 @@
 package com.moviebox.app.ui.screens
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -53,6 +52,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.moviebox.app.core.TvChannel
 import com.moviebox.app.ui.LiveTvUiState
+import com.moviebox.app.ui.components.pressScale
 import com.moviebox.app.R
 
 /** The Live TV screen: the channels of the configured playlists. */
@@ -222,7 +222,7 @@ private fun ChannelRow(channel: TvChannel, onPlay: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onPlay)
+            .pressScale(onClick = onPlay)
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

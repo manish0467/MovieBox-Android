@@ -1,6 +1,5 @@
 package com.moviebox.app.ui.screens
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -56,6 +55,7 @@ import coil.compose.AsyncImage
 import com.moviebox.app.core.Release
 import com.moviebox.app.core.SubtitleOption
 import com.moviebox.app.ui.DetailsUiState
+import com.moviebox.app.ui.components.pressScale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -240,7 +240,7 @@ private fun DetailsContentList(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable { onEpisodeSelected(index + 1) }
+                                .pressScale { onEpisodeSelected(index + 1) }
                                 .padding(horizontal = 16.dp, vertical = 10.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {

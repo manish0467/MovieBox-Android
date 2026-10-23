@@ -6,9 +6,13 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavType
@@ -31,6 +35,7 @@ import com.moviebox.app.ui.screens.HomeScreen
 import com.moviebox.app.ui.screens.LiveTvScreen
 import com.moviebox.app.ui.theme.MovieBoxTheme
 import com.moviebox.app.ui.theme.MovieBoxThemeMode
+import com.moviebox.app.ui.theme.isDark
 import kotlinx.coroutines.launch
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
@@ -50,9 +55,19 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         handleIntent(intent)
         setContent {
             val themeMode = homeViewModel.themeMode
+            val dark = themeMode.isDark(isSystemInDarkTheme())
+            // The status and navigation icons follow the app's own theme, which
+            // can be forced light or dark independently of the system.
+            SideEffect {
+                WindowCompat.getInsetsController(window, window.decorView).apply {
+                    isAppearanceLightStatusBars = !dark
+                    isAppearanceLightNavigationBars = !dark
+                }
+            }
             MovieBoxTheme(mode = themeMode) {
                 MovieBoxApp(
                     homeViewModel = homeViewModel,
