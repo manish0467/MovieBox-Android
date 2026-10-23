@@ -73,6 +73,10 @@ android {
         }
         debug {
             isMinifyEnabled = false
+            // The debug-only Open URL hook lives in src/debug. A separate id
+            // lets that build install beside the release one and keeps the
+            // two variants' data apart.
+            applicationIdSuffix = ".debug"
         }
     }
 
