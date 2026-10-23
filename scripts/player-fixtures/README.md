@@ -36,15 +36,25 @@ ffmpeg -y \
   -map 0:v:0 -map 1:a:0 -t 90 -c:v libx264 -preset veryfast -pix_fmt yuv420p \
   -c:a aac -b:a 128k -movflags +faststart \
   scripts/player-fixtures/out/tone-90s.mp4
+
+cat > scripts/player-fixtures/out/offset.srt <<'EOF'
+1
+00:00:02,000 --> 00:00:08,000
+Subtitle delivered through the debug hook
+
+2
+00:00:12,000 --> 00:00:18,000
+Second subtitle fixture cue
+EOF
 ```
 
-Serve the fixtures to an emulator. `adb reverse` maps host port 8000 to the
-emulator's loopback address:
+Serve the fixtures with the request-header logger. It prints the method, path,
+and every request header, including custom headers passed through the hook.
+`adb reverse` maps host port 8000 to the emulator's loopback address:
 
 ```sh
 ~/Android/Sdk/platform-tools/adb reverse tcp:8000 tcp:8000
-cd scripts/player-fixtures/out
-python3 -m http.server 8000 --bind 0.0.0.0
+python3 scripts/player-fixtures/serve.py --bind 0.0.0.0 --port 8000
 ```
 
 In another terminal, start the debug-only URL hook:
@@ -52,11 +62,13 @@ In another terminal, start the debug-only URL hook:
 ```sh
 ~/Android/Sdk/platform-tools/adb shell am start \
   -n com.moviebox.app.debug/com.moviebox.app.debug.DebugOpenUrlActivity \
-  --es url http://127.0.0.1:8000/multi-audio.mkv \
-  --es title 'Multi-audio fixture'
+  --es url http://127.0.0.1:8000/tone-90s.mp4 \
+  --es title 'Tone fixture' \
+  --esa headers 'X-Debug-Fixture=hook-header-check'
 ```
 
 Replace the URL filename with `single-audio.mp4` or `tone-90s.mp4` to test
-those fixtures. Optional URL extras are `--es subtitle URL` and
-`--es title NAME`; comma-separated header strings use `--esa headers
+those fixtures. For the subtitle fixture, use `multi-audio.mkv` and pass
+`--es subtitle http://127.0.0.1:8000/offset.srt`. Optional metadata is passed
+with `--es title NAME`; comma-separated header strings use `--esa headers
 'Name=Value,Other=Value'`.

@@ -6,4 +6,5 @@
     <string name="debug_headers_hint">Headers (one Name=Value per line, optional)</string>
     <string name="debug_open_player">Open player</string>
     <string name="debug_url_required">Enter a video URL</string>
+    <string name="debug_url_invalid">Enter a valid HTTP or HTTPS URL</string>
 </resources>

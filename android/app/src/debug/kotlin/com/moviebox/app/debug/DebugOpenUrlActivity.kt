@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.widget.Button
 import android.widget.EditText
 import android.widget.Toast
+import java.net.URI
 import com.moviebox.app.R
 import com.moviebox.app.player.PlayerActivity
 
@@ -13,14 +14,20 @@ import com.moviebox.app.player.PlayerActivity
 class DebugOpenUrlActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        if (intent.getStringExtra(ARG_URL).isNullOrBlank()) {
+        val url = intent.getStringExtra(ARG_URL)
+        if (url.isNullOrBlank()) {
             showUrlForm()
+        } else if (!isValidMediaUrl(url)) {
+            Toast.makeText(this, R.string.debug_url_invalid, Toast.LENGTH_SHORT).show()
+            finish()
         } else {
             openPlayer(
-                url = intent.getStringExtra(ARG_URL).orEmpty(),
+                url = url,
                 subtitle = intent.getStringExtra(ARG_SUBTITLE),
                 title = intent.getStringExtra(ARG_TITLE),
-                headers = intent.getStringArrayListExtra(ARG_HEADERS).orEmpty(),
+                headers = intent.getStringArrayListExtra(ARG_HEADERS)
+                    ?: intent.getStringArrayExtra(ARG_HEADERS)?.toList()
+                    ?: emptyList(),
             )
         }
     }
@@ -34,8 +41,10 @@ class DebugOpenUrlActivity : Activity() {
 
         findViewById<Button>(R.id.debug_open).setOnClickListener {
             val url = urlField.text.toString().trim()
-            if (url.isBlank()) {
-                urlField.error = getString(R.string.debug_url_required)
+            if (!isValidMediaUrl(url)) {
+                urlField.error = getString(
+                    if (url.isBlank()) R.string.debug_url_required else R.string.debug_url_invalid,
+                )
                 return@setOnClickListener
             }
             openPlayer(
@@ -52,8 +61,8 @@ class DebugOpenUrlActivity : Activity() {
     }
 
     private fun openPlayer(url: String, subtitle: String?, title: String?, headers: List<String>) {
-        if (url.isBlank()) {
-            Toast.makeText(this, R.string.debug_url_required, Toast.LENGTH_SHORT).show()
+        if (!isValidMediaUrl(url)) {
+            Toast.makeText(this, R.string.debug_url_invalid, Toast.LENGTH_SHORT).show()
             finish()
             return
         }
@@ -66,6 +75,15 @@ class DebugOpenUrlActivity : Activity() {
         startActivity(playerIntent)
         finish()
     }
+
+    private fun isValidMediaUrl(value: String): Boolean = runCatching {
+        val uri = URI(value)
+        val isHttp = uri.scheme.equals("http", ignoreCase = true) ||
+            uri.scheme.equals("https", ignoreCase = true)
+        val hasValidHost = !uri.host.isNullOrBlank()
+        val hasValidPort = uri.port == -1 || uri.port in 1..65535
+        uri.isAbsolute && isHttp && hasValidHost && hasValidPort
+    }.getOrDefault(false)
 
     private companion object {
         const val ARG_URL = "url"
