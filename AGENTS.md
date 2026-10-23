@@ -64,6 +64,15 @@ MovieBox-Tui.
 - Keep the app offline-friendly: no analytics, no telemetry, no crash
   reporting. Everything stays on the device.
 
+## Build environment (non-negotiable)
+
+- JDK 27 is the machine default and breaks Gradle 8.11's embedded Kotlin DSL.
+  Always build with `export JAVA_HOME=/usr/lib/jvm/java-21-openjdk`.
+- Build one Gradle invocation at a time. If the build cache complains
+  ("Could not load from local cache"), re-run with `--no-build-cache`.
+- Worktrees need `android/app/src/main/jniLibs/{arm64-v8a,x86_64}` copied in;
+  release builds also need `android/keystore.properties` (never commit it).
+
 ## Build and verify
 
 ```bash
@@ -101,55 +110,52 @@ The emulator is slow (320×640, software rendering) and its SystemUI sometimes
 shows an "isn't responding" dialog — that is the emulator, not the app. Search
 "dune", open a title and press Play: playback must decode from the CDN.
 
-## Lanes and file ownership
+## Git: what an agent may do
 
-Three agents work in parallel, each in its own worktree, on its own branch.
-**Do not edit files outside your lane** — a conflict costs more than the
-feature.
+- Commit only on your own lane branch, only the files you own.
+- **Never create or push a tag. Never create, edit or publish a release.**
+  Never push `main`. The integrator merges; the owner tags and releases.
+- A release is cut only from `main`, only after the owner says "go".
+- Never read, print, echo or commit the keystore, `keystore.properties`, or
+  any GitHub secret.
+- Commit each finished feature separately with a conventional message, and
+  report the commit hashes you created. An uncommitted lane cannot be merged
+  and is lost when the worktree goes away.
 
-| Lane | Worktree | Branch | Owns | State |
-| :--- | :--- | :--- | :--- | :--- |
-| Player | `../box-android-player` | `feat/player-polish` | `player/**`, `ui/player/**` | landed and merged |
-| Design | `../box-android-design` | `feat/design-system` | `ui/theme/**`, `res/**`, the strings in `ui/screens/**` | **the lane that is still open** |
-| Core | `../box-android-core` | `feat/quality-memory` | `core/**`, `crates/moviebox-android/**`, `MainActivity.kt`, `.github/**`, `docs/**` | landed and merged |
+## Version and tag invariant
 
-The player and core lanes have finished and their work is in `main`. The
-**player files are free to edit now** — the design lane extracts the player's
-strings as part of the localisation pass.
+- `versionCode` in `android/app/build.gradle.kts` must equal the number in the
+  release tag: `android-preview-<versionCode>`.
+- The in-app updater parses the tag as `substringAfterLast('-')` digits and
+  compares it with the installed `versionCode`. A mismatch ships nothing.
+- Current: `versionCode 10` is taken by the published 0.9.1.
+  0.10.0 = `versionCode 11`, `versionName "0.10.0"`, tag `android-preview-11`.
 
-If you need something from another lane, say so in your report instead of
-editing it.
+## Frozen files after commit 0
 
-### One branch per lane, one commit per feature
-
-Stay on your lane's branch. Do not create a second branch, and do not push —
-the integrator merges the lane. Commit each finished feature separately with a
-conventional commit message, so the lane branch can be fast-forwarded:
-
-```bash
-git add <only the files you own>
-git commit -m "feat(player): add gesture controls"
-```
-
-**Commit your work.** An uncommitted lane cannot be merged and the work is
-lost when the worktree goes away. Report the commit hashes you created.
-
-### The lanes are file-disjoint but not independent
-
-Disjoint files mean no *merge* conflicts. Two couplings still exist, so keep to
-these rules:
-
-- **The theme API must stay source-compatible.** The design lane may add theme
-  modes, but `MovieBoxTheme` and `MovieBoxColors` must keep working for a
-  caller that passes no arguments, or the player lane stops compiling. If a
-  signature has to change, report it instead of changing it.
-- **String extraction.** The design lane extracts the strings of the screens
-  it owns (`ui/screens/**`) and — now that the player lane has landed — of
-  `player/**` and `ui/player/**` as well. The player's strings are hardcoded
-  English today; they are the last untranslated surface.
+- Frozen: `PlayerActivity.kt`, `PlayerViewModel.kt`, `PlayerControlsOverlay.kt`,
+  `PlayerGestures.kt`, `PlayerSessionPreferences.kt`, `res/values*/strings.xml`,
+  `.github/workflows/*`.
+- Each feature edits only its seam (`player/features/<X>Feature.kt`), its slot
+  files (`ui/player/<feature>/*.kt`) and its own
+  `res/values*/strings_player_<feature>.xml`.
+- If a feature genuinely needs a frozen file, **stop and report** the exact
+  change. The integrator makes it on `main`; open worktrees then rebase before
+  continuing. Do not work around it with a private clock, a CompositionLocal or
+  a duplicated state field.
 
 ## Before you say "done"
 
-Report what you changed, the exact commands you ran and their output, and
-anything you need from another lane. If something could not be run (no NDK, no
-device, no network), say so explicitly instead of implying it passed.
+```bash
+./gradlew testDebugUnitTest
+./gradlew assembleDebug
+./gradlew assembleRelease        # signature check with apksigner
+```
+
+- `testDebugUnitTest` must pass; a new feature needs a JVM test for its pure
+  logic (mapping, timing, speed math).
+- The release APK must never contain the debug-only Open URL hook:
+  0 matches in `aapt2 dump xmltree` and in every `classes*.dex`; 1 in debug.
+- Report what you changed, the exact commands you ran and their output, and
+  anything you need from the integrator. If something could not be run (no NDK,
+  no device, no network), say so instead of implying it passed.
