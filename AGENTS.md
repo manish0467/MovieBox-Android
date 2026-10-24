@@ -132,8 +132,8 @@ shows an "isn't responding" dialog — that is the emulator, not the app. Search
   release tag: `android-preview-<versionCode>`.
 - The in-app updater parses the tag as `substringAfterLast('-')` digits and
   compares it with the installed `versionCode`. A mismatch ships nothing.
-- Current: `versionCode 13` is the published 0.11.0 (tag `android-preview-13`).
-  0.11.1 = `versionCode 14`, `versionName "0.11.1"`, tag `android-preview-14`.
+- Current: `versionCode 14` is the published 0.11.1 (tag `android-preview-14`).
+  The next release is `versionCode 15` / tag `android-preview-15`.
 
 ## Frozen files after commit 0
 
