@@ -101,7 +101,15 @@ class MainActivity : ComponentActivity() {
                 destination = dest,
             )
             lifecycleScope.launch {
-                MovieBoxRepository().startDownload(request)
+                runCatching {
+                    DownloadStorage.startDownload(this@MainActivity, MovieBoxRepository(), request)
+                }.onFailure { error ->
+                    Toast.makeText(
+                        this@MainActivity,
+                        error.message ?: "Download failed",
+                        Toast.LENGTH_LONG,
+                    ).show()
+                }
                 homeViewModel.loadDownloads()
             }
         }
@@ -115,10 +123,16 @@ class MainActivity : ComponentActivity() {
     private fun openDownloadedMedia(job: DownloadJob) {
         val rawFile = java.io.File(job.destination)
         val file = DownloadStorage.resolvePlaybackFile(rawFile)
-        // A finished download has moved into the media store, so the file the
-        // engine reported is gone and the content uri is used instead.
+        // A direct download already lives in the media store; the content uri
+        // is authoritative even though the hidden cache placeholder is gone.
+        val direct = job.contentUri
+            ?.takeIf { job.state == "completed" }
+            ?.let(Uri::parse)
+        // A finished path-based download has moved into the media store, so the
+        // file the engine reported is gone and the content uri is used instead.
         val published = DownloadStorage.publishedUri(this, file)
         val url = when {
+            direct != null -> direct.toString()
             published != null -> published.toString()
             file.exists() -> {
                 android.media.MediaScannerConnection.scanFile(

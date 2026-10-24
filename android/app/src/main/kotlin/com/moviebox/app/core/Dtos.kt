@@ -234,6 +234,8 @@ data class DownloadRequest(
     val season: Int = 0,
     val episode: Int = 0,
     val destination: String? = null,
+    @SerialName("fileDescriptor") val fileDescriptor: Int? = null,
+    @SerialName("contentUri") val contentUri: String? = null,
 )
 
 /** Mirrors `moviebox_android::downloads::JobProgress`. */
@@ -289,6 +291,7 @@ data class DownloadJob(
     val season: Int = 0,
     val episode: Int = 0,
     val destination: String,
+    @SerialName("contentUri") val contentUri: String? = null,
     val state: String = "queued",
     val error: String? = null,
     val progress: DownloadProgress = DownloadProgress(),

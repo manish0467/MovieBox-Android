@@ -1,9 +1,11 @@
 //! Download jobs for the Android app.
 //!
-//! The core download engine ([`moviebox_tui::download::download`]) is a single
-//! async call that streams a URL to a destination and reports progress through
-//! a callback. The app needs a *manager* on top of it: several jobs at once,
-//! progress that can be polled, and the ability to pause a job.
+//! The core download engine ([`moviebox_tui::download::download`]) is one path
+//! for plain files. Android 10+ additionally uses [`crate::direct`], which
+//! writes the response straight into an open MediaStore descriptor so the app
+//! does not need a second full-size copy. The app needs a *manager* on top:
+//! several jobs at once, progress that can be polled, and the ability to pause
+//! a job.
 //!
 //! The bridge owns the jobs, so the Kotlin side only has to start, list, pause
 //! and remove them.
@@ -35,8 +37,21 @@ pub struct DownloadRequest {
     #[serde(default)]
     pub episode: usize,
     /// Where to write the file. Defaults to the core download directory.
+    ///
+    /// When [`Self::file_descriptor`] is set this is the exact app-private
+    /// placeholder path that identifies the job; the bytes go to the
+    /// descriptor instead, so it is not a base directory.
     #[serde(default)]
     pub destination: Option<String>,
+    /// A MediaStore pending file descriptor to stream the body into.
+    ///
+    /// The app keeps the public file pending until the download completes, so
+    /// it never has to keep a second full-size copy in app storage.
+    #[serde(default, alias = "fileDescriptor")]
+    pub file_descriptor: Option<i32>,
+    /// The public MediaStore URI that owns [`Self::file_descriptor`].
+    #[serde(default, alias = "contentUri")]
+    pub content_uri: Option<String>,
 }
 
 /// The state of a job, as the app sees it.
@@ -70,6 +85,8 @@ pub struct DownloadJob {
     pub season: usize,
     pub episode: usize,
     pub destination: PathBuf,
+    /// The public MediaStore URI for a direct-to-MediaStore download.
+    pub content_uri: Option<String>,
     pub cancel: Arc<AtomicBool>,
     pub state: Mutex<JobState>,
     pub progress: Mutex<JobProgress>,
@@ -94,6 +111,7 @@ impl DownloadJob {
             "season": self.season,
             "episode": self.episode,
             "destination": self.destination.to_string_lossy(),
+            "contentUri": self.content_uri,
             "state": state,
             "error": error,
             "progress": progress,
@@ -142,6 +160,7 @@ impl DownloadManager {
             season: request.season,
             episode: request.episode,
             destination,
+            content_uri: request.content_uri.clone(),
             cancel,
             state: Mutex::new(JobState::Queued),
             progress: Mutex::new(JobProgress::default()),
@@ -214,6 +233,25 @@ mod tests {
         assert_eq!(request.season, 0);
         assert_eq!(request.episode, 0);
         assert!(request.provider.is_empty());
+        assert!(request.file_descriptor.is_none());
+        assert!(request.content_uri.is_none());
+    }
+
+    #[test]
+    fn request_accepts_a_direct_media_descriptor() {
+        let payload = r#"{
+            "url": "https://example.test/a.mp4",
+            "title": "a",
+            "destination": "/tmp/a",
+            "fileDescriptor": 42,
+            "contentUri": "content://media/external/video/media/7"
+        }"#;
+        let request: DownloadRequest = serde_json::from_str(payload).expect("request");
+        assert_eq!(request.file_descriptor, Some(42));
+        assert_eq!(
+            request.content_uri.as_deref(),
+            Some("content://media/external/video/media/7")
+        );
     }
 
     #[test]
@@ -228,6 +266,8 @@ mod tests {
             season: 0,
             episode: 0,
             destination: None,
+            file_descriptor: None,
+            content_uri: None,
         };
         let job = manager.register(
             &request,
@@ -253,6 +293,8 @@ mod tests {
             season: 1,
             episode: 2,
             destination: None,
+            file_descriptor: None,
+            content_uri: None,
         };
         let job = manager.register(
             &request,
@@ -281,6 +323,8 @@ mod tests {
             season: 0,
             episode: 0,
             destination: None,
+            file_descriptor: None,
+            content_uri: None,
         };
         let first = DownloadManager::new();
         let second = DownloadManager::new();

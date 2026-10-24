@@ -22,6 +22,7 @@ import com.moviebox.app.ui.theme.themeKeyFromName
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -125,6 +126,17 @@ class MovieBoxViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             withContext(Dispatchers.IO) {
                 DownloadStorage.reconcile(getApplication<Application>())
+            }
+        }
+        // Finalize completed direct downloads even when the user has left the
+        // Downloads tab: the pending MediaStore row is invisible until then.
+        // The downloads screen has its own tighter poll while it is visible.
+        viewModelScope.launch {
+            while (isActive) {
+                delay(1_500)
+                if (_state.value.downloads.any { it.state == "running" || it.state == "queued" }) {
+                    loadDownloads()
+                }
             }
         }
     }
@@ -349,7 +361,27 @@ class MovieBoxViewModel(app: Application) : AndroidViewModel(app) {
             // A finished download moves into the public Movies folder,
             // so it shows up in a gallery and in a file manager.
             finalJobs.filter { it.isCompleted }.forEach { job ->
-                publishDownload(job)
+                if (job.contentUri != null) {
+                    finalizeDirectDownload(job)
+                } else {
+                    publishDownload(job)
+                }
+            }
+        }
+    }
+
+    /**
+     * Clears the pending flag on a direct-to-MediaStore download. The bytes
+     * are already in the public file, so this only makes it visible.
+     */
+    private fun finalizeDirectDownload(job: DownloadJob) {
+        val context = getApplication<Application>()
+        viewModelScope.launch {
+            val result = withContext(Dispatchers.IO) {
+                DownloadStorage.finalizeDirect(context, job)
+            }
+            if (result is DownloadStorage.Result.Failed) {
+                _state.update { it.copy(error = result.reason) }
             }
         }
     }
@@ -387,35 +419,64 @@ class MovieBoxViewModel(app: Application) : AndroidViewModel(app) {
 
     fun resumeDownload(job: DownloadJob) {
         viewModelScope.launch {
-            val destinationBase = DownloadStorage.workingDirectory(getApplication()).absolutePath
+            val context = getApplication<Application>()
+            val destinationBase = DownloadStorage.workingDirectory(context).absolutePath
+            val contentUri = job.contentUri
+            val direct = contentUri != null
+            val descriptor = if (contentUri != null) {
+                withContext(Dispatchers.IO) {
+                    DownloadStorage.openPending(context, contentUri)
+                }
+            } else {
+                null
+            }
+            if (direct && descriptor == null) {
+                _state.update { it.copy(error = "The pending media file is no longer available.") }
+                return@launch
+            }
+
             // Re-resolve source to guarantee a fresh, non-expired signed CDN URL
             if (job.subjectId.isNotBlank() && job.provider.isNotBlank()) {
-                runCatching {
-                    val releases = repository.episodeStreams(job.provider, job.subjectId, job.season, job.episode)
-                    val matching = releases.firstOrNull { it.filename == job.title } ?: releases.firstOrNull()
-                    if (matching != null) {
-                        val source = repository.resolvePlayback(job.provider, matching)
-                        repository.startDownload(
-                            DownloadRequest(
-                                url = source.url,
-                                headers = source.headers,
-                                title = job.title,
-                                provider = job.provider,
-                                subjectId = job.subjectId,
-                                season = job.season,
-                                episode = job.episode,
-                                destination = destinationBase,
-                            ),
-                        )
-                        // The native id is generated for this process. Drop the
-                        // saved placeholder now that the new job owns the file.
-                        withContext(Dispatchers.IO) {
-                            DownloadStorage.removeJob(getApplication(), job.id)
+                try {
+                    runCatching {
+                        val releases = repository.episodeStreams(job.provider, job.subjectId, job.season, job.episode)
+                        val matching = releases.firstOrNull { it.filename == job.title } ?: releases.firstOrNull()
+                        if (matching != null) {
+                            val source = repository.resolvePlayback(job.provider, matching)
+                            repository.startDownload(
+                                DownloadRequest(
+                                    url = source.url,
+                                    headers = source.headers,
+                                    title = job.title,
+                                    provider = job.provider,
+                                    subjectId = job.subjectId,
+                                    season = job.season,
+                                    episode = job.episode,
+                                    destination = if (direct) job.destination else destinationBase,
+                                    fileDescriptor = descriptor?.fd,
+                                    contentUri = contentUri,
+                                ),
+                            )
+                            // The native id is generated for this process. Drop the
+                            // saved placeholder now that the new job owns the file.
+                            // A direct job must keep its pending MediaStore row; the
+                            // new job is now writing to that same row.
+                            withContext(Dispatchers.IO) {
+                                DownloadStorage.removeJob(
+                                    context,
+                                    job.id,
+                                    deletePending = !direct,
+                                )
+                            }
                         }
+                    }.onSuccess {
+                        loadDownloads()
                     }
-                }.onSuccess {
-                    loadDownloads()
+                } finally {
+                    descriptor?.close()
                 }
+            } else {
+                descriptor?.close()
             }
         }
     }

@@ -6,21 +6,28 @@ import android.content.Context
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
+import android.os.ParcelFileDescriptor
 import android.os.StatFs
 import android.provider.MediaStore
 import android.system.Os
 import java.io.File
+import java.util.UUID
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 /**
  * Where a finished download lives.
  *
- * The download itself runs in the app's external folder, because the engine
- * writes a plain file. When it is done, the file is moved into the public
- * Movies collection, so it shows up in a gallery and in a file manager and
- * survives the removal of the app. The original is only deleted once the copy
- * has succeeded.
+ * On Android 10+ the bridge streams the response into a pending MediaStore row
+ * in the public Movies collection, so no second app-private copy exists. When
+ * the job finishes, [finalizeDirect] clears `IS_PENDING` and the same file
+ * becomes visible to galleries and file managers.
+ *
+ * Android 9 and older still use the app's external folder, because a plain
+ * file cannot be written to the public collection without a storage
+ * permission there; those files are only indexed with the media scanner.
  */
 object DownloadStorage {
 
@@ -53,6 +60,93 @@ object DownloadStorage {
         "avi" -> "video/x-msvideo"
         "mov" -> "video/quicktime"
         else -> "video/mp4"
+    }
+
+    /** A pending MediaStore file plus the descriptor passed to the bridge. */
+    private data class DirectHandle(
+        val request: DownloadRequest,
+        val descriptor: ParcelFileDescriptor,
+        val uri: Uri,
+    )
+
+    /**
+     * Starts a download without requiring a second full-size app copy.
+     *
+     * On Android 10+ the body is streamed straight into a pending MediaStore
+     * file through the bridge. A pending row is invisible to galleries and
+     * file managers until the job completes and [finalizeDirect] clears
+     * `IS_PENDING`. Older releases keep the path-based engine.
+     */
+    suspend fun startDownload(
+        context: Context,
+        repository: MovieBoxRepository,
+        request: DownloadRequest,
+    ): String = withContext(Dispatchers.IO) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            return@withContext repository.startDownload(request)
+        }
+
+        val handle = prepareDirect(context, request)
+            ?: throw IllegalStateException(
+                "Not enough free space to create the public media file.",
+            )
+        try {
+            repository.startDownload(handle.request)
+        } catch (error: Exception) {
+            runCatching { context.contentResolver.delete(handle.uri, null, null) }
+            throw IllegalStateException(
+                error.message ?: "The download could not be started.",
+                error,
+            )
+        } finally {
+            handle.descriptor.close()
+        }
+    }
+
+    /**
+     * Creates the pending public row and opens its write descriptor. Returns
+     * null when MediaStore cannot create the row, for example when the device
+     * is out of space; the caller reports that instead of falling back to a
+     * second app-private copy.
+     */
+    private fun prepareDirect(context: Context, request: DownloadRequest): DirectHandle? {
+        val displayName = displayNameFor(request)
+        val values = ContentValues().apply {
+            put(MediaStore.Video.Media.DISPLAY_NAME, displayName)
+            put(MediaStore.Video.Media.MIME_TYPE, mimeTypeFor(File(displayName)))
+            put(MediaStore.Video.Media.RELATIVE_PATH, PUBLIC_FOLDER)
+            put(MediaStore.Video.Media.IS_PENDING, 1)
+        }
+        val uri = try {
+            context.contentResolver.insert(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, values)
+        } catch (_: Exception) {
+            null
+        } ?: return null
+        val descriptor = try {
+            context.contentResolver.openFileDescriptor(uri, "rw")
+        } catch (_: Exception) {
+            null
+        }
+        if (descriptor == null) {
+            runCatching { context.contentResolver.delete(uri, null, null) }
+            return null
+        }
+
+        val directory = File(context.cacheDir, "direct").apply { mkdirs() }
+        val destination = File(directory, "${UUID.randomUUID()}.pending")
+        val directRequest = request.copy(
+            destination = destination.absolutePath,
+            contentUri = uri.toString(),
+            fileDescriptor = descriptor.fd,
+        )
+        return DirectHandle(directRequest, descriptor, uri)
+    }
+
+    private fun displayNameFor(request: DownloadRequest): String {
+        val name = request.title.substringAfterLast('/').substringAfterLast('\\').trim()
+            .ifBlank { "MovieBox" }
+        if (DownloadRecords.isCompletedMediaName(name)) return name
+        return "$name.${DownloadRecords.extensionFor(request.url)}"
     }
 
     /** Resolves the on-disk file, handling legacy .mkv.mp4 renames if necessary. */
@@ -185,6 +279,150 @@ object DownloadStorage {
     }
 
     /**
+     * Reopens a pending MediaStore file for a resumed direct download. The
+     * caller must close the descriptor after the bridge has duplicated it.
+     */
+    fun openPending(context: Context, uriText: String): ParcelFileDescriptor? = try {
+        context.contentResolver.openFileDescriptor(Uri.parse(uriText), "rw")
+    } catch (_: Exception) {
+        null
+    }
+
+    /**
+     * Finalizes a direct-to-MediaStore download after the native job says it
+     * completed. The pending row becomes visible to galleries and file
+     * managers; there is no second copy to delete.
+     */
+    @Synchronized
+    fun finalizeDirect(context: Context, job: DownloadJob): Result {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            return Result.Failed("Direct media publication needs Android 10 or newer")
+        }
+        val uriText = job.contentUri
+            ?: return Result.Failed("The direct download has no content uri")
+        val uri = Uri.parse(uriText)
+        val expected = job.progress.total
+        if (expected != null && expected > 0) {
+            val actual = pendingSize(context, uri)
+            if (actual != null && actual != expected) {
+                return Result.Failed(
+                    "The media store file is $actual bytes, expected $expected"
+                )
+            }
+        }
+
+        val updated = runCatching {
+            context.contentResolver.update(
+                uri,
+                ContentValues().apply { put(MediaStore.Video.Media.IS_PENDING, 0) },
+                null,
+                null,
+            )
+        }.getOrDefault(0)
+        if (updated <= 0) {
+            return Result.Failed("The media store could not finalize the file")
+        }
+
+        removeHiddenFiles(job.destination)
+        return Result.Published(uri)
+    }
+
+    /**
+     * Recovers a direct download after process death.
+     *
+     * Direct downloads are sequential, so the pending file's size is exactly
+     * the number of bytes written. When it matches the reported total, the
+     * transfer had completed and only the pending flag has to be cleared.
+     * A stale `.part` link from an older build keeps the job paused instead.
+     */
+    private fun reconcileDirect(context: Context, jobs: MutableList<DownloadJob>): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return false
+        var changed = false
+        for (job in jobs.toList()) {
+            val uriText = job.contentUri ?: continue
+            if (job.state == "completed") {
+                finalizeDirect(context, job)
+                continue
+            }
+            val total = job.progress.total ?: continue
+            if (total <= 0) continue
+            if (existsNoFollow(File("${job.destination}.part"))) continue
+            if (pendingSize(context, Uri.parse(uriText)) != total) continue
+
+            if (DownloadRecords.markCompleted(
+                    jobs,
+                    File(job.destination),
+                    File(job.destination).name,
+                    total,
+                )
+            ) {
+                changed = true
+            }
+            val updated = jobs.firstOrNull { it.id == job.id } ?: continue
+            finalizeDirect(context, updated)
+        }
+        return changed
+    }
+
+    private fun pendingSize(context: Context, uri: Uri): Long? {
+        val descriptorSize = try {
+            context.contentResolver.openFileDescriptor(uri, "r")?.use { descriptor ->
+                descriptor.statSize.takeIf { it >= 0 }
+            }
+        } catch (_: Exception) {
+            null
+        }
+        if (descriptorSize != null) return descriptorSize
+        return try {
+            context.contentResolver.query(
+                uri,
+                arrayOf(MediaStore.MediaColumns.SIZE),
+                null,
+                null,
+                null,
+            )?.use { cursor ->
+                if (cursor.moveToFirst()) cursor.getLong(0) else null
+            }
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private fun existsNoFollow(file: File): Boolean = try {
+        Os.lstat(file.absolutePath)
+        true
+    } catch (_: Exception) {
+        false
+    }
+
+    private fun removeHiddenFiles(destination: String) {
+        if (destination.isBlank()) return
+        runCatching { File(destination).delete() }
+        runCatching { File("$destination.part").delete() }
+        runCatching { File("$destination.part.json").delete() }
+    }
+
+    private fun deletePendingMedia(context: Context, uri: Uri) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return
+        val pending = try {
+            context.contentResolver.query(
+                uri,
+                arrayOf(MediaStore.Video.Media.IS_PENDING),
+                null,
+                null,
+                null,
+            )?.use { cursor ->
+                if (cursor.moveToFirst() && !cursor.isNull(0)) cursor.getInt(0) else null
+            }
+        } catch (_: Exception) {
+            null
+        }
+        if (pending == 1) {
+            runCatching { context.contentResolver.delete(uri, null, null) }
+        }
+    }
+
+    /**
      * Finds a published download again, after the app was restarted.
      *
      * The engine still reports the path of the file it wrote, but the file
@@ -303,12 +541,25 @@ object DownloadStorage {
         }
     }
 
-    /** Removes a job record from persistent storage. */
+    /**
+     * Removes a job record from persistent storage.
+     *
+     * A direct download also owns a pending MediaStore row. Removing the job
+     * from the downloads screen deletes that hidden row, but never a row that
+     * has already been finalized into the user's library. Passing
+     * `deletePending = false` is used when a paused job is being replaced by
+     * its resumed attempt, which must keep the same pending URI.
+     */
     @Synchronized
-    fun removeJob(context: Context, id: String) {
+    fun removeJob(context: Context, id: String, deletePending: Boolean = true) {
         val current = getSavedJobs(context)
+        val job = current.firstOrNull { it.id == id }
         val updated = current.filter { it.id != id }
         saveJobs(context, updated)
+        if (deletePending && job?.contentUri != null) {
+            deletePendingMedia(context, Uri.parse(job.contentUri))
+            removeHiddenFiles(job.destination)
+        }
     }
 
     /**
@@ -318,53 +569,62 @@ object DownloadStorage {
     @Synchronized
     fun reconcile(context: Context) {
         val dir = workingDirectory(context)
-        if (!dir.exists() || !dir.isDirectory) return
-
-        migrateLegacyPartials(dir)
         val saved = getSavedJobs(context).toMutableList()
-        val foundFiles = mutableListOf<File>()
-        scanCompletedFiles(dir, foundFiles)
-
         var changed = false
-        for (file in foundFiles) {
-            val length = file.length()
-            val cleanName = if (file.name.endsWith(".mkv.mp4", ignoreCase = true)) {
-                file.name.removeSuffix(".mp4")
-            } else {
-                file.name
+
+        if (dir.exists() && dir.isDirectory) {
+            migrateLegacyPartials(dir)
+            val foundFiles = mutableListOf<File>()
+            scanCompletedFiles(dir, foundFiles)
+
+            for (file in foundFiles) {
+                val length = file.length()
+                val cleanName = if (file.name.endsWith(".mkv.mp4", ignoreCase = true)) {
+                    file.name.removeSuffix(".mp4")
+                } else {
+                    file.name
+                }
+                val result = publish(context, file)
+                if (result is Result.Published || result is Result.Indexed) {
+                    // Update the saved record, not just the file. A process death
+                    // after the engine finished but before the last save leaves a
+                    // running record that would otherwise be shown as paused.
+                    if (DownloadRecords.markCompleted(saved, file, cleanName, length)) {
+                        changed = true
+                    }
+                }
             }
-            val result = publish(context, file)
-            if (result is Result.Published || result is Result.Indexed) {
-                // Update the saved record, not just the file. A process death
-                // after the engine finished but before the last save leaves a
-                // running record that would otherwise be shown as paused.
-                if (DownloadRecords.markCompleted(saved, file, cleanName, length)) {
-                    changed = true
+
+            // The process can also die after publishing the file (so the working
+            // copy is already gone) but before the record is marked as completed.
+            // Look the finished file up in the public collection before treating
+            // the job as paused.
+            for (job in saved.toList()) {
+                if (job.state == "completed" || job.destination.isBlank()) continue
+                val file = File(job.destination)
+                if (file.exists()) continue
+                val cleanName = if (file.name.endsWith(".mkv.mp4", ignoreCase = true)) {
+                    file.name.removeSuffix(".mp4")
+                } else {
+                    file.name
+                }
+                if (publishedUri(context, file) != null) {
+                    val bytes = job.progress.total?.takeIf { it > 0 }
+                        ?: job.progress.downloaded
+                    if (DownloadRecords.markCompleted(saved, file, cleanName, bytes)) {
+                        changed = true
+                    }
                 }
             }
         }
 
-        // The process can also die after publishing the file (so the working
-        // copy is already gone) but before the record is marked as completed.
-        // Look the finished file up in the public collection before treating
-        // the job as paused.
-        for (job in saved.toList()) {
-            if (job.state == "completed" || job.destination.isBlank()) continue
-            val file = File(job.destination)
-            if (file.exists()) continue
-            val cleanName = if (file.name.endsWith(".mkv.mp4", ignoreCase = true)) {
-                file.name.removeSuffix(".mp4")
-            } else {
-                file.name
-            }
-            if (publishedUri(context, file) != null) {
-                val bytes = job.progress.total?.takeIf { it > 0 }
-                    ?: job.progress.downloaded
-                if (DownloadRecords.markCompleted(saved, file, cleanName, bytes)) {
-                    changed = true
-                }
-            }
+        // Direct downloads live in a hidden cache path and own a pending
+        // MediaStore row, so they are reconciled separately from the working
+        // directory scan above.
+        if (reconcileDirect(context, saved)) {
+            changed = true
         }
+
         if (changed) {
             saveJobs(context, saved)
         }

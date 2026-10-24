@@ -106,6 +106,17 @@ class DownloadRecordsTest {
     }
 
     @Test
+    fun mediaExtensionFollowsTheSignedUrlContainer() {
+        assertEquals(
+            "mkv",
+            DownloadRecords.extensionFor("https://cdn.test/resource/x.mkv?sign=abc&t=1"),
+        )
+        assertEquals("webm", DownloadRecords.extensionFor("https://cdn.test/x.webm#frag"))
+        assertEquals("mp4", DownloadRecords.extensionFor("https://cdn.test/stream"))
+        assertEquals("mp4", DownloadRecords.extensionFor("https://cdn.test/x.MP4?x=.mkv"))
+    }
+
+    @Test
     fun legacyPartialsMoveToTheCurrentContainerName() {
         val partial = DownloadRecords.legacyPartialTarget(File("/tmp/Dune.mkv.mp4.part"))
         assertEquals(File("/tmp/Dune.mkv.part"), partial)

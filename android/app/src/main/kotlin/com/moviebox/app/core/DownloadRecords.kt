@@ -46,6 +46,23 @@ internal object DownloadRecords {
     }
 
     /**
+     * Picks the container extension from a signed URL. MovieBox release titles
+     * usually have no suffix, so without this an MKV stream would be stored as
+     * `.mp4` even though the bytes are Matroska.
+     */
+    fun extensionFor(url: String): String {
+        val path = url.substringBefore('?').substringBefore('#')
+        return when (path.substringAfterLast('.', "").lowercase()) {
+            "mkv" -> "mkv"
+            "webm" -> "webm"
+            "ts" -> "ts"
+            "avi" -> "avi"
+            "mov" -> "mov"
+            else -> "mp4"
+        }
+    }
+
+    /**
      * Maps a legacy `name.mkv.mp4.part` sidecar to the `name.mkv.part` path the
      * current engine expects, so a download paused before the container fix can
      * still be resumed instead of starting from zero.

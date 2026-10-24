@@ -204,21 +204,30 @@ class DetailsViewModel(app: Application) : AndroidViewModel(app) {
             runCatching {
                 repository.resolvePlayback(details.id.provider, release)
             }.onSuccess { source ->
-                val destinationBase = DownloadStorage.workingDirectory(context).absolutePath
-                val title = if (release.filename.isNotBlank()) release.filename else details.title
-                val request = DownloadRequest(
-                    url = source.url,
-                    headers = source.headers,
-                    title = title,
-                    provider = details.id.provider,
-                    subjectId = details.id.value,
-                    season = _state.value.selectedSeason,
-                    episode = _state.value.selectedEpisode,
-                    destination = destinationBase,
-                )
-                val jobId = repository.startDownload(request)
-                _state.update { it.copy(resolving = false) }
-                onStarted(jobId)
+                try {
+                    val destinationBase = DownloadStorage.workingDirectory(context).absolutePath
+                    val title = if (release.filename.isNotBlank()) release.filename else details.title
+                    val request = DownloadRequest(
+                        url = source.url,
+                        headers = source.headers,
+                        title = title,
+                        provider = details.id.provider,
+                        subjectId = details.id.value,
+                        season = _state.value.selectedSeason,
+                        episode = _state.value.selectedEpisode,
+                        destination = destinationBase,
+                    )
+                    val jobId = DownloadStorage.startDownload(context, repository, request)
+                    _state.update { it.copy(resolving = false) }
+                    onStarted(jobId)
+                } catch (error: Exception) {
+                    _state.update {
+                        it.copy(
+                            resolving = false,
+                            error = error.message ?: "Failed to start download",
+                        )
+                    }
+                }
             }.onFailure { error ->
                 _state.update {
                     it.copy(resolving = false, error = error.message ?: "Failed to start download")

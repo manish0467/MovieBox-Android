@@ -14,6 +14,7 @@
 //! ```
 
 mod api;
+mod direct;
 mod downloads;
 mod tv;
 

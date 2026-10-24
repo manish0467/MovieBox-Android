@@ -147,13 +147,30 @@ directory (`nativeDownloadDirectory()`). Series land in
 `<base>/Series/<title>/Season N/<title> - SxxExx.mp4`, movies in
 `<base>/Movies/<title>/<title>.mp4`.
 
+On Android 10 and newer the app adds two optional fields:
+
+```json
+  "destination": "/data/user/0/com.moviebox.app/cache/direct/<id>.pending",
+  "fileDescriptor": 93,
+  "contentUri": "content://media/external/video/media/123"
+```
+
+`fileDescriptor` is a duplicated descriptor for a pending MediaStore file and
+`contentUri` is its public row. The bridge streams the response directly into
+that descriptor, so no second app-private copy is made. `destination` is then
+the exact app-private placeholder used to identify the job, not a directory.
+`nativeDownloadStart` is still the only download entry point; the two fields
+are internal to the Kotlin layer.
+
 `nativeDownloadList()` returns the jobs:
 
 ```json
 { "jobs": [ { "id": "dl-1", "title": "…", "state": "running",
               "progress": { "downloaded": 1234, "total": 5678,
                             "bytesPerSecond": 4096.0, "attempt": 1, "workers": 4 },
-              "destination": "/…/Dune.mp4", "error": null } ] }
+              "destination": "/…/Dune.mp4",
+              "contentUri": "content://media/external/video/media/123",
+              "error": null } ] }
 ```
 
 `state` is one of `queued`, `running`, `completed`, `paused` or `failed`. The
@@ -201,9 +218,15 @@ Kotlin player applies whatever the bridge returns through
 - Backed by the download engine exposed through `nativeDownloadStart`, `nativeDownloadList`, `nativeDownloadCancel`, `nativeDownloadRemove`, and `nativeDownloadDirectory`.
 - Download buttons next to "Play" on every source row in `DetailsScreen` resolve the source URL and headers via `nativeResolvePlayback` before dispatching.
 - The **Downloads** bottom navigation tab displays live jobs with progress bars, transfer speeds (MB/s or KB/s), downloaded/total sizes, and state chips (Running, Paused, Completed, Failed, Queued).
-- Active jobs are polled every second while the Downloads screen is visible and automatically stopped when leaving the screen.
+- Active jobs are polled every second while the Downloads screen is visible, and
+  a slower background poll finalizes completed direct downloads when the user is
+  elsewhere in the app.
 - Controls include Pause, Resume (which re-resolves fresh signed URLs and headers on expiry), Remove, and Open.
-- Finished downloads are indexed into the system media store via `MediaScannerConnection` and can be played directly with the native Media3 player.
+- On Android 10 and newer finished downloads become visible through the
+  MediaStore as soon as the transfer completes. On Android 9 and older they are
+  registered with `MediaScannerConnection`, because the public folder needs a
+  storage permission there.
+- "Open" plays the published file through its `content://` uri.
 
 ## Feature parity
 
@@ -247,18 +270,20 @@ or newer, and need the INTERNET permission only.
 
 ### Where the downloads land
 
-The engine writes the file into the app's external Movies folder
-(`Android/data/com.moviebox.app/files/Movies/MovieBox`), because it writes a
-plain file. When the download is finished, the app moves it into the public
-`Movies/MovieBox` collection through the MediaStore, so the file shows up in a
-gallery and in a file manager and survives the removal of the app.
+On Android 10 and newer the download is written straight into a **pending
+MediaStore row** in the public `Movies/MovieBox` collection. The row is hidden
+from galleries and file managers until the transfer finishes; clearing
+`IS_PENDING` then makes the same file visible. There is no "download, then
+copy" step, so the device only needs room for the file itself rather than two
+full-size copies.
 
-- The free space is checked before the copy, and the user is told when it
-  does not fit.
-- The original is only deleted once the copy has succeeded.
-- On Android 9 and older the file stays in the app's external folder and is
-  registered with the media scanner, because the public folder would need a
-  storage permission there.
+- If the device fills up mid-transfer, the native job fails with the write
+  error, the partial pending row stays hidden, and removing the job deletes it.
+  The app does not fall back to a second app-private copy.
+- On Android 9 and older the engine writes into the app's external Movies
+  folder (`Android/data/com.moviebox.app/files/Movies/MovieBox`) and registers
+  it with the media scanner, because writing to the public folder there needs a
+  storage permission.
 - "Open" plays the published file through its `content://` uri.
 
 ### The in-app update check

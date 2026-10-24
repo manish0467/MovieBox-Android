@@ -9,7 +9,7 @@ lives in [MovieBox-Tui](https://github.com/manish0467/MovieBox-Tui). The engine 
 consumed as a git dependency:
 
 ```toml
-moviebox-tui = { git = "https://github.com/manish0467/MovieBox-Tui", tag = "v0.1.28", default-features = false }
+moviebox-tui = { git = "https://github.com/manish0467/MovieBox-Tui", tag = "v0.1.30", default-features = false }
 ```
 
 Bump the tag when a new core release lands.
@@ -54,6 +54,10 @@ MovieBox-Tui.
   resolved and pass them on.
 - **The signed links expire.** Re-resolve a source when it is used; do not
   cache a URL across a session.
+- **Downloads go straight to MediaStore on Android 10+.** The Kotlin layer
+  creates an `IS_PENDING` row, passes its descriptor to the bridge, and only
+  clears `IS_PENDING` when the job finishes. Do not reintroduce a second
+  app-private copy or the old copy-then-publish path there.
 - **No blocking on the main thread.** The repository calls suspend on
   `Dispatchers.IO`.
 - **No panics.** Kotlin: no `!!` on platform types, no swallowed exceptions in

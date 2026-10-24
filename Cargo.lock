@@ -1138,6 +1138,7 @@ dependencies = [
  "jni",
  "log",
  "moviebox-tui",
+ "reqwest",
  "serde",
  "serde_json",
  "tokio",

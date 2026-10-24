@@ -3,6 +3,7 @@
 //! Every method returns either a `serde_json::Value` payload or a human
 //! readable error message. The JNI layer wraps them into a JSON envelope.
 
+use std::os::fd::BorrowedFd;
 use std::path::PathBuf;
 
 use moviebox_tui::providers::ReleaseProvider;
@@ -11,6 +12,7 @@ use moviebox_tui::service::MovieBoxService;
 use serde::Serialize;
 use serde_json::{Value, json};
 
+use crate::direct;
 use crate::downloads::{DownloadManager, DownloadRequest, JobState};
 
 /// Wraps a successful payload into the envelope understood by the Kotlin side.
@@ -393,27 +395,60 @@ impl Bridge {
             return Err("the download request has no url".to_string());
         }
 
-        let base = match request.destination.as_deref().map(str::trim) {
-            Some(path) if !path.is_empty() => PathBuf::from(path),
-            _ => moviebox_tui::service::resolve_download_dir(None),
+        let direct = request.file_descriptor.is_some();
+        if direct && request.content_uri.is_none() {
+            return Err("a direct download needs a content uri".to_string());
+        }
+
+        let destination = if direct {
+            let path = request
+                .destination
+                .as_deref()
+                .map(str::trim)
+                .filter(|path| !path.is_empty())
+                .ok_or_else(|| "the direct download has no destination".to_string())?;
+            PathBuf::from(path)
+        } else {
+            let base = match request.destination.as_deref().map(str::trim) {
+                Some(path) if !path.is_empty() => PathBuf::from(path),
+                _ => moviebox_tui::service::resolve_download_dir(None),
+            };
+            let is_series = request.season > 0 || request.episode > 0;
+            let ext = detect_extension(&request.title, &request.url);
+            let clean_title = strip_extension(&request.title);
+            let stem = moviebox_tui::download::safe_file_stem(&clean_title);
+            let (directory, file_name) = moviebox_tui::download::resolve_media_target(
+                &base,
+                &stem,
+                is_series,
+                request.season,
+                request.episode,
+            );
+            directory.join(format!("{file_name}.{ext}"))
         };
-        let is_series = request.season > 0 || request.episode > 0;
-        let ext = detect_extension(&request.title, &request.url);
-        let clean_title = strip_extension(&request.title);
-        let stem = moviebox_tui::download::safe_file_stem(&clean_title);
-        let (directory, file_name) = moviebox_tui::download::resolve_media_target(
-            &base,
-            &stem,
-            is_series,
-            request.season,
-            request.episode,
-        );
-        let destination = directory.join(format!("{file_name}.{ext}"));
 
         if let Some(parent) = destination.parent() {
             std::fs::create_dir_all(parent)
                 .map_err(|err| format!("cannot create {}: {err}", parent.to_string_lossy()))?;
         }
+
+        // The direct path writes through a duplicate of the app's pending
+        // MediaStore descriptor. Reopening the public file by path is denied
+        // by the storage layer, so the descriptor itself is the destination.
+        let direct_fd = if let Some(raw_fd) = request.file_descriptor {
+            // SAFETY: the Kotlin side keeps the ParcelFileDescriptor open
+            // until nativeDownloadStart has returned; try_clone_to_owned makes
+            // an independent descriptor that the download task owns.
+            let owned = unsafe { BorrowedFd::borrow_raw(raw_fd) }
+                .try_clone_to_owned()
+                .map_err(|err| format!("cannot duplicate the media descriptor: {err}"))?;
+            // A leftover link from an older build must not make the recovery
+            // pass think this direct file still has a partial sidecar.
+            let _ = std::fs::remove_file(partial_path(&destination));
+            Some(owned)
+        } else {
+            None
+        };
 
         let cancel = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
         let job = self
@@ -427,45 +462,51 @@ impl Bridge {
         runtime.spawn(async move {
             *job_for_task.state.lock().unwrap_or_else(|e| e.into_inner()) = JobState::Running;
             let client = moviebox_tui::net::client_with_headers(&headers);
-            let result =
-                moviebox_tui::download::download(&client, &url, &destination, cancel, |progress| {
-                    let mut slot = job_for_task
-                        .progress
-                        .lock()
-                        .unwrap_or_else(|e| e.into_inner());
-                    slot.downloaded = progress.downloaded;
-                    slot.total = progress.total;
-                    slot.bytes_per_second = progress.bytes_per_second;
-                    slot.attempt = progress.attempt;
-                    slot.workers = progress.workers;
-                })
-                .await;
+            let mut update = |progress: moviebox_tui::download::DownloadProgress| {
+                let mut slot = job_for_task
+                    .progress
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner());
+                slot.downloaded = progress.downloaded;
+                slot.total = progress.total;
+                slot.bytes_per_second = progress.bytes_per_second;
+                slot.attempt = progress.attempt;
+                slot.workers = progress.workers;
+            };
+            let result = if let Some(descriptor) = direct_fd {
+                direct::download(&client, &url, descriptor, cancel, &mut update).await
+            } else {
+                moviebox_tui::download::download(&client, &url, &destination, cancel, &mut update)
+                    .await
+                    .map_err(|error| error.user_message())
+            };
 
-            let mut state = job_for_task.state.lock().unwrap_or_else(|e| e.into_inner());
-            match result {
-                Ok(moviebox_tui::download::DownloadOutcome::Completed { bytes }) => {
-                    *state = JobState::Completed;
-                    drop(state);
-                    let mut slot = job_for_task
-                        .progress
-                        .lock()
-                        .unwrap_or_else(|e| e.into_inner());
-                    slot.downloaded = bytes;
-                }
-                Ok(moviebox_tui::download::DownloadOutcome::Paused { bytes }) => {
-                    *state = JobState::Paused;
-                    drop(state);
-                    let mut slot = job_for_task
-                        .progress
-                        .lock()
-                        .unwrap_or_else(|e| e.into_inner());
-                    slot.downloaded = bytes;
-                }
-                Err(error) => {
-                    *state = JobState::Failed;
-                    drop(state);
-                    *job_for_task.error.lock().unwrap_or_else(|e| e.into_inner()) =
-                        Some(error.user_message());
+            {
+                let mut state = job_for_task.state.lock().unwrap_or_else(|e| e.into_inner());
+                match result {
+                    Ok(moviebox_tui::download::DownloadOutcome::Completed { bytes }) => {
+                        *state = JobState::Completed;
+                        drop(state);
+                        let mut slot = job_for_task
+                            .progress
+                            .lock()
+                            .unwrap_or_else(|e| e.into_inner());
+                        slot.downloaded = bytes;
+                    }
+                    Ok(moviebox_tui::download::DownloadOutcome::Paused { bytes }) => {
+                        *state = JobState::Paused;
+                        drop(state);
+                        let mut slot = job_for_task
+                            .progress
+                            .lock()
+                            .unwrap_or_else(|e| e.into_inner());
+                        slot.downloaded = bytes;
+                    }
+                    Err(error) => {
+                        *state = JobState::Failed;
+                        drop(state);
+                        *job_for_task.error.lock().unwrap_or_else(|e| e.into_inner()) = Some(error);
+                    }
                 }
             }
         });
@@ -547,6 +588,12 @@ fn direct_source(release: &Release) -> Result<PlaybackSource, String> {
         source_label: mirror.label.clone(),
         max_height: Some(release.resolution_u64()).filter(|&h| h > 0),
     })
+}
+
+fn partial_path(destination: &std::path::Path) -> PathBuf {
+    let mut name = destination.as_os_str().to_os_string();
+    name.push(".part");
+    PathBuf::from(name)
 }
 
 fn detect_extension(title: &str, url: &str) -> String {
