@@ -16,8 +16,8 @@ android {
         applicationId = "com.moviebox.app"
         minSdk = 24
         targetSdk = 35
-        versionCode = 13
-        versionName = "0.11.0"
+        versionCode = 14
+        versionName = "0.11.1"
 
         ndk {
             // arm64-v8a covers real devices, x86_64 covers the emulator.

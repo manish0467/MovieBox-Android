@@ -128,8 +128,8 @@ shows an "isn't responding" dialog — that is the emulator, not the app. Search
   release tag: `android-preview-<versionCode>`.
 - The in-app updater parses the tag as `substringAfterLast('-')` digits and
   compares it with the installed `versionCode`. A mismatch ships nothing.
-- Current: `versionCode 10` is taken by the published 0.9.1.
-  0.10.0 = `versionCode 11`, `versionName "0.10.0"`, tag `android-preview-11`.
+- Current: `versionCode 13` is the published 0.11.0 (tag `android-preview-13`).
+  0.11.1 = `versionCode 14`, `versionName "0.11.1"`, tag `android-preview-14`.
 
 ## Frozen files after commit 0
 
