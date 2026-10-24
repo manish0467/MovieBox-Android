@@ -321,16 +321,43 @@ class MovieBoxViewModel(app: Application) : AndroidViewModel(app) {
      * ------------------------------------------------------------------ */
 
     fun loadDownloads() {
+        val context = getApplication<Application>()
         viewModelScope.launch {
-            runCatching { repository.listDownloads() }
-                .onSuccess { jobs ->
-                    _state.update { it.copy(downloads = jobs) }
-                    // A finished download moves into the public Movies folder,
-                    // so it shows up in a gallery and in a file manager.
-                    jobs.filter { it.isCompleted }.forEach { job ->
-                        publishDownload(job)
-                    }
+            withContext(Dispatchers.IO) {
+                DownloadStorage.reconcile(context)
+            }
+            val activeJobs = runCatching { repository.listDownloads() }.getOrDefault(emptyList())
+            val savedJobs = withContext(Dispatchers.IO) {
+                DownloadStorage.getSavedJobs(context)
+            }
+
+            val merged = mutableMapOf<String, DownloadJob>()
+            for (job in savedJobs) {
+                merged[job.id] = job
+            }
+            for (job in activeJobs) {
+                merged[job.id] = job
+            }
+
+            val activeIds = activeJobs.map { it.id }.toSet()
+            val finalJobs = merged.values.map { job ->
+                if (!activeIds.contains(job.id) && (job.isRunning || job.isQueued)) {
+                    job.copy(state = "paused")
+                } else {
+                    job
                 }
+            }.sortedByDescending { it.id }
+
+            withContext(Dispatchers.IO) {
+                DownloadStorage.saveJobs(context, finalJobs)
+            }
+
+            _state.update { it.copy(downloads = finalJobs) }
+            // A finished download moves into the public Movies folder,
+            // so it shows up in a gallery and in a file manager.
+            finalJobs.filter { it.isCompleted }.forEach { job ->
+                publishDownload(job)
+            }
         }
     }
 
@@ -343,12 +370,13 @@ class MovieBoxViewModel(app: Application) : AndroidViewModel(app) {
     private fun publishDownload(job: DownloadJob) {
         val context = getApplication<Application>()
         val file = java.io.File(job.destination)
-        if (!file.exists()) return
+        val targetFile = DownloadStorage.resolvePlaybackFile(file)
+        if (!targetFile.exists()) return
         viewModelScope.launch {
             // The file is copied into the media store, which is a lot of
             // work for a large film and must not run on the main thread.
             withContext(Dispatchers.IO) {
-                DownloadStorage.publish(context, file)
+                DownloadStorage.publish(context, targetFile)
             }.let { result ->
                 if (result is DownloadStorage.Result.Failed) {
                     _state.update { it.copy(error = result.reason) }
@@ -395,9 +423,13 @@ class MovieBoxViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun removeDownload(jobId: String) {
+        val context = getApplication<Application>()
         viewModelScope.launch {
             runCatching { repository.removeDownload(jobId) }
-                .onSuccess { loadDownloads() }
+            withContext(Dispatchers.IO) {
+                DownloadStorage.removeJob(context, jobId)
+            }
+            loadDownloads()
         }
     }
 

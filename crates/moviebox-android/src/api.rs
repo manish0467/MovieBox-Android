@@ -398,7 +398,9 @@ impl Bridge {
             _ => moviebox_tui::service::resolve_download_dir(None),
         };
         let is_series = request.season > 0 || request.episode > 0;
-        let stem = moviebox_tui::download::safe_file_stem(&request.title);
+        let ext = detect_extension(&request.title, &request.url);
+        let clean_title = strip_extension(&request.title);
+        let stem = moviebox_tui::download::safe_file_stem(&clean_title);
         let (directory, file_name) = moviebox_tui::download::resolve_media_target(
             &base,
             &stem,
@@ -406,7 +408,7 @@ impl Bridge {
             request.season,
             request.episode,
         );
-        let destination = directory.join(format!("{file_name}.mp4"));
+        let destination = directory.join(format!("{file_name}.{ext}"));
 
         if let Some(parent) = destination.parent() {
             std::fs::create_dir_all(parent)
@@ -547,6 +549,40 @@ fn direct_source(release: &Release) -> Result<PlaybackSource, String> {
     })
 }
 
+fn detect_extension(title: &str, url: &str) -> String {
+    let lower_title = title.to_ascii_lowercase();
+    for ext in ["mkv", "webm", "ts", "avi", "mov", "mp4"] {
+        if lower_title.ends_with(&format!(".{ext}")) || lower_title.contains(&format!(".{ext}.")) {
+            return ext.to_string();
+        }
+    }
+    let lower_url = url.split('?').next().unwrap_or(url).to_ascii_lowercase();
+    for ext in ["mkv", "webm", "ts", "avi", "mov", "mp4"] {
+        if lower_url.ends_with(&format!(".{ext}")) {
+            return ext.to_string();
+        }
+    }
+    "mp4".to_string()
+}
+
+fn strip_extension(mut title: &str) -> String {
+    loop {
+        let lower = title.to_ascii_lowercase();
+        let mut stripped = false;
+        for ext in [".mkv", ".mp4", ".webm", ".ts", ".avi", ".mov"] {
+            if lower.ends_with(ext) {
+                title = &title[..title.len() - ext.len()];
+                stripped = true;
+                break;
+            }
+        }
+        if !stripped {
+            break;
+        }
+    }
+    title.to_string()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -609,5 +645,32 @@ mod tests {
         assert!(release.mirrors[0].headers.is_empty());
         assert!(!release.mirrors[0].direct_file);
         assert_eq!(release.resource_id.as_deref(), Some("5764199508657799296"));
+    }
+
+    #[test]
+    fn detects_and_strips_extensions_correctly() {
+        assert_eq!(
+            detect_extension("Dune.Part.Two.2024.1080p.mkv", "https://example.com/stream"),
+            "mkv"
+        );
+        assert_eq!(
+            detect_extension("Dune.mkv.mp4", "https://example.com/stream"),
+            "mkv"
+        );
+        assert_eq!(
+            detect_extension("Dune", "https://example.com/stream.mkv?auth=1"),
+            "mkv"
+        );
+        assert_eq!(
+            detect_extension("Dune [Hindi]-1080P", "https://example.com/stream.mp4"),
+            "mp4"
+        );
+
+        assert_eq!(
+            strip_extension("Dune.Part.Two.2024.1080p.mkv"),
+            "Dune.Part.Two.2024.1080p"
+        );
+        assert_eq!(strip_extension("Dune.mkv.mp4"), "Dune");
+        assert_eq!(strip_extension("Dune [Hindi]-1080P"), "Dune [Hindi]-1080P");
     }
 }

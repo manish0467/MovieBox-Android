@@ -9,6 +9,8 @@ import android.os.Environment
 import android.os.StatFs
 import android.provider.MediaStore
 import java.io.File
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
 /**
  * Where a finished download lives.
@@ -20,6 +22,14 @@ import java.io.File
  * has succeeded.
  */
 object DownloadStorage {
+
+    private val json = Json {
+        ignoreUnknownKeys = true
+        isLenient = true
+        encodeDefaults = true
+    }
+
+    private const val DOWNLOADS_RECORD_FILE = "downloads.json"
 
     /** The folder the engine writes into. */
     fun workingDirectory(context: Context): File {
@@ -33,6 +43,26 @@ object DownloadStorage {
 
     /** How much free space a copy needs beyond the size of the file. */
     private const val SPACE_MARGIN_BYTES = 32L * 1024 * 1024
+
+    /** Resolves the proper MIME type for a given media file. */
+    fun mimeTypeFor(file: File): String = when (file.extension.lowercase()) {
+        "mkv" -> "video/x-matroska"
+        "webm" -> "video/webm"
+        "ts" -> "video/mp2t"
+        "avi" -> "video/x-msvideo"
+        "mov" -> "video/quicktime"
+        else -> "video/mp4"
+    }
+
+    /** Resolves the on-disk file, handling legacy .mkv.mp4 renames if necessary. */
+    fun resolvePlaybackFile(file: File): File {
+        if (file.exists()) return file
+        if (file.name.endsWith(".mkv.mp4", ignoreCase = true)) {
+            val clean = File(file.parentFile, file.name.removeSuffix(".mp4"))
+            if (clean.exists()) return clean
+        }
+        return file
+    }
 
     /** The result of publishing a finished download. */
     sealed class Result {
@@ -57,38 +87,52 @@ object DownloadStorage {
         if (!file.exists()) {
             return Result.Failed("The downloaded file is missing")
         }
+
+        // Clean up legacy .mkv.mp4 double extension before publishing
+        val targetFile = if (file.name.endsWith(".mkv.mp4", ignoreCase = true)) {
+            val fixed = File(file.parentFile, file.name.removeSuffix(".mp4"))
+            if (!fixed.exists() && file.renameTo(fixed)) {
+                fixed
+            } else {
+                file
+            }
+        } else {
+            file
+        }
+        val mimeType = mimeTypeFor(targetFile)
+
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
             android.media.MediaScannerConnection.scanFile(
                 context,
-                arrayOf(file.absolutePath),
-                arrayOf("video/mp4"),
+                arrayOf(targetFile.absolutePath),
+                arrayOf(mimeType),
                 null,
             )
-            return Result.Indexed(file)
+            return Result.Indexed(targetFile)
         }
 
         // The file may have been published already, for example when the
         // download finished while the app was closed. Then only the leftover
         // has to go.
-        val existing = findPublished(context, file.name, file.length())
+        val existing = findPublished(context, targetFile.name, targetFile.length())
         if (existing != null) {
-            file.delete()
+            targetFile.delete()
             return Result.Published(existing)
         }
 
         val available = freeSpace()
-        if (available != null && available < file.length() + SPACE_MARGIN_BYTES) {
+        if (available != null && available < targetFile.length() + SPACE_MARGIN_BYTES) {
             return Result.Failed(
                 "There is not enough free space to move the file " +
                     "(${available / 1024 / 1024} MB free, " +
-                    "${file.length() / 1024 / 1024} MB needed)"
+                    "${targetFile.length() / 1024 / 1024} MB needed)"
             )
         }
 
         val resolver = context.contentResolver
         val values = ContentValues().apply {
-            put(MediaStore.Video.Media.DISPLAY_NAME, file.name)
-            put(MediaStore.Video.Media.MIME_TYPE, "video/mp4")
+            put(MediaStore.Video.Media.DISPLAY_NAME, targetFile.name)
+            put(MediaStore.Video.Media.MIME_TYPE, mimeType)
             put(MediaStore.Video.Media.RELATIVE_PATH, PUBLIC_FOLDER)
             put(MediaStore.Video.Media.IS_PENDING, 1)
         }
@@ -101,7 +145,7 @@ object DownloadStorage {
 
         try {
             resolver.openOutputStream(uri)?.use { output ->
-                file.inputStream().use { input -> input.copyTo(output) }
+                targetFile.inputStream().use { input -> input.copyTo(output) }
             } ?: throw IllegalStateException("the media store did not open the file")
         } catch (error: Exception) {
             // The copy failed: the original stays, the empty entry goes.
@@ -116,7 +160,7 @@ object DownloadStorage {
         runCatching { resolver.update(uri, values, null, null) }
 
         // The copy is in place, only now the original is removed.
-        file.delete()
+        targetFile.delete()
         return Result.Published(uri)
     }
 
@@ -130,7 +174,12 @@ object DownloadStorage {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return null
         // The file is still there, so it was not moved.
         if (file.exists()) return null
-        return findPublished(context, file.name, null)
+        val uri = findPublished(context, file.name, null)
+        if (uri != null) return uri
+        if (file.name.endsWith(".mkv.mp4", ignoreCase = true)) {
+            return findPublished(context, file.name.removeSuffix(".mp4"), null)
+        }
+        return null
     }
 
     /**
@@ -143,8 +192,8 @@ object DownloadStorage {
         val collection = MediaStore.Video.Media.EXTERNAL_CONTENT_URI
         val projection = arrayOf(MediaStore.Video.Media._ID, MediaStore.Video.Media.SIZE)
         val selection = "${MediaStore.Video.Media.DISPLAY_NAME} = ? AND " +
-            "${MediaStore.Video.Media.RELATIVE_PATH} = ?"
-        val arguments = arrayOf(name, "$PUBLIC_FOLDER/")
+            "(${MediaStore.Video.Media.RELATIVE_PATH} = ? OR ${MediaStore.Video.Media.RELATIVE_PATH} = ?)"
+        val arguments = arrayOf(name, "$PUBLIC_FOLDER/", PUBLIC_FOLDER)
         return try {
             context.contentResolver.query(
                 collection,
@@ -155,7 +204,8 @@ object DownloadStorage {
             )?.use { cursor ->
                 while (cursor.moveToNext()) {
                     val id = cursor.getLong(0)
-                    if (size != null && cursor.getLong(1) != size) continue
+                    val fileSize = cursor.getLong(1)
+                    if (size != null && fileSize > 0 && fileSize != size) continue
                     return ContentUris.withAppendedId(collection, id)
                 }
                 null
@@ -171,5 +221,110 @@ object DownloadStorage {
         StatFs(path.absolutePath).availableBytes
     } catch (_: Exception) {
         null
+    }
+
+    /** Reads saved download jobs from persistent storage. */
+    fun getSavedJobs(context: Context): List<DownloadJob> {
+        val file = File(context.filesDir, DOWNLOADS_RECORD_FILE)
+        if (!file.exists()) return emptyList()
+        return try {
+            val content = file.readText()
+            json.decodeFromString<List<DownloadJob>>(content)
+        } catch (_: Exception) {
+            emptyList()
+        }
+    }
+
+    /** Saves download jobs atomically to persistent storage. */
+    fun saveJobs(context: Context, jobs: List<DownloadJob>) {
+        val file = File(context.filesDir, DOWNLOADS_RECORD_FILE)
+        val tmp = File(context.filesDir, "$DOWNLOADS_RECORD_FILE.tmp")
+        try {
+            val content = json.encodeToString(jobs)
+            tmp.writeText(content)
+            tmp.renameTo(file)
+        } catch (_: Exception) {
+            // Leave previous file untouched on error
+        }
+    }
+
+    /** Removes a job record from persistent storage. */
+    fun removeJob(context: Context, id: String) {
+        val current = getSavedJobs(context)
+        val updated = current.filter { it.id != id }
+        saveJobs(context, updated)
+    }
+
+    /**
+     * Scans the working directory for finished media files that have not yet been
+     * published into the public collection, publishes them, and records them.
+     */
+    fun reconcile(context: Context) {
+        val dir = workingDirectory(context)
+        if (!dir.exists() || !dir.isDirectory) return
+
+        val saved = getSavedJobs(context).toMutableList()
+        val foundFiles = mutableListOf<File>()
+        scanCompletedFiles(dir, foundFiles)
+
+        var changed = false
+        for (file in foundFiles) {
+            val length = file.length()
+            val cleanName = if (file.name.endsWith(".mkv.mp4", ignoreCase = true)) {
+                file.name.removeSuffix(".mp4")
+            } else {
+                file.name
+            }
+            val result = publish(context, file)
+            if (result is Result.Published || result is Result.Indexed) {
+                val existsInSaved = saved.any { job ->
+                    job.destination.endsWith(file.name) || job.destination.endsWith(cleanName)
+                }
+                if (!existsInSaved) {
+                    val restoredJob = DownloadJob(
+                        id = "restored-${cleanName.hashCode().toUInt()}",
+                        title = cleanName.substringBeforeLast('.'),
+                        destination = file.absolutePath,
+                        state = "completed",
+                        progress = DownloadProgress(
+                            downloaded = length,
+                            total = length,
+                            bytesPerSecond = 0.0,
+                            attempt = 1,
+                            workers = 1,
+                        ),
+                    )
+                    saved.add(restoredJob)
+                    changed = true
+                }
+            }
+        }
+        if (changed) {
+            saveJobs(context, saved)
+        }
+    }
+
+    private fun scanCompletedFiles(dir: File, out: MutableList<File>) {
+        val files = dir.listFiles() ?: return
+        for (file in files) {
+            if (file.isDirectory) {
+                scanCompletedFiles(file, out)
+            } else if (file.isFile) {
+                val name = file.name
+                if (name.endsWith(".part") || name.endsWith(".part.json")) continue
+                val isVideo = name.endsWith(".mkv.mp4", ignoreCase = true) ||
+                    name.endsWith(".mp4", ignoreCase = true) ||
+                    name.endsWith(".mkv", ignoreCase = true) ||
+                    name.endsWith(".webm", ignoreCase = true) ||
+                    name.endsWith(".ts", ignoreCase = true)
+                if (isVideo) {
+                    val part = File(file.parentFile, "$name.part")
+                    val meta = File(file.parentFile, "$name.part.json")
+                    if (!part.exists() && !meta.exists()) {
+                        out.add(file)
+                    }
+                }
+            }
+        }
     }
 }

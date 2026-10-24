@@ -113,7 +113,8 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun openDownloadedMedia(job: DownloadJob) {
-        val file = java.io.File(job.destination)
+        val rawFile = java.io.File(job.destination)
+        val file = DownloadStorage.resolvePlaybackFile(rawFile)
         // A finished download has moved into the media store, so the file the
         // engine reported is gone and the content uri is used instead.
         val published = DownloadStorage.publishedUri(this, file)
@@ -123,7 +124,7 @@ class MainActivity : ComponentActivity() {
                 android.media.MediaScannerConnection.scanFile(
                     this,
                     arrayOf(file.absolutePath),
-                    arrayOf("video/mp4"),
+                    arrayOf(DownloadStorage.mimeTypeFor(file)),
                     null,
                 )
                 Uri.fromFile(file).toString()
