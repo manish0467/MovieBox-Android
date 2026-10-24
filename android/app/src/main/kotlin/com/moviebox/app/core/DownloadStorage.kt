@@ -8,6 +8,7 @@ import android.os.Build
 import android.os.Environment
 import android.os.StatFs
 import android.provider.MediaStore
+import android.system.Os
 import java.io.File
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -83,6 +84,7 @@ object DownloadStorage {
      * is only registered with the media scanner, because the public folder
      * would need a storage permission there.
      */
+    @Synchronized
     fun publish(context: Context, file: File): Result {
         if (!file.exists()) {
             return Result.Failed("The downloaded file is missing")
@@ -110,6 +112,11 @@ object DownloadStorage {
             )
             return Result.Indexed(targetFile)
         }
+
+        // A previous process may have been killed while copying this file.
+        // Its pending MediaStore row is incomplete and must not be mistaken
+        // for a finished publication.
+        deleteStalePending(context, targetFile.name)
 
         // The file may have been published already, for example when the
         // download finished while the app was closed. Then only the leftover
@@ -144,8 +151,14 @@ object DownloadStorage {
         } ?: return Result.Failed("The media store refused the file")
 
         try {
+            val expected = targetFile.length()
             resolver.openOutputStream(uri)?.use { output ->
-                targetFile.inputStream().use { input -> input.copyTo(output) }
+                val copied = targetFile.inputStream().use { input -> input.copyTo(output) }
+                if (copied != expected) {
+                    throw IllegalStateException(
+                        "the media store accepted $copied of $expected bytes"
+                    )
+                }
             } ?: throw IllegalStateException("the media store did not open the file")
         } catch (error: Exception) {
             // The copy failed: the original stays, the empty entry goes.
@@ -157,9 +170,16 @@ object DownloadStorage {
 
         values.clear()
         values.put(MediaStore.Video.Media.IS_PENDING, 0)
-        runCatching { resolver.update(uri, values, null, null) }
+        val finalized = runCatching { resolver.update(uri, values, null, null) }
+            .getOrDefault(0)
+        if (finalized <= 0) {
+            // The row is still pending and therefore invisible. Drop it and
+            // keep the source so the next reconciliation can try again.
+            runCatching { resolver.delete(uri, null, null) }
+            return Result.Failed("The media store could not finalize the file")
+        }
 
-        // The copy is in place, only now the original is removed.
+        // The copy is in place and visible, only now the original is removed.
         targetFile.delete()
         return Result.Published(uri)
     }
@@ -192,7 +212,8 @@ object DownloadStorage {
         val collection = MediaStore.Video.Media.EXTERNAL_CONTENT_URI
         val projection = arrayOf(MediaStore.Video.Media._ID, MediaStore.Video.Media.SIZE)
         val selection = "${MediaStore.Video.Media.DISPLAY_NAME} = ? AND " +
-            "(${MediaStore.Video.Media.RELATIVE_PATH} = ? OR ${MediaStore.Video.Media.RELATIVE_PATH} = ?)"
+            "(${MediaStore.Video.Media.RELATIVE_PATH} = ? OR ${MediaStore.Video.Media.RELATIVE_PATH} = ?) AND " +
+            "${MediaStore.Video.Media.IS_PENDING} = 0"
         val arguments = arrayOf(name, "$PUBLIC_FOLDER/", PUBLIC_FOLDER)
         return try {
             context.contentResolver.query(
@@ -205,13 +226,42 @@ object DownloadStorage {
                 while (cursor.moveToNext()) {
                     val id = cursor.getLong(0)
                     val fileSize = cursor.getLong(1)
-                    if (size != null && fileSize > 0 && fileSize != size) continue
+                    if (size != null && fileSize != size) continue
                     return ContentUris.withAppendedId(collection, id)
                 }
                 null
             }
         } catch (_: Exception) {
             null
+        }
+    }
+
+    /**
+     * Deletes pending rows left behind by a publish that was killed before it
+     * could finalize. They have no usable data and would otherwise be picked up
+     * by a later lookup.
+     */
+    private fun deleteStalePending(context: Context, name: String) {
+        val collection = MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+        val selection = "${MediaStore.Video.Media.DISPLAY_NAME} = ? AND " +
+            "(${MediaStore.Video.Media.RELATIVE_PATH} = ? OR ${MediaStore.Video.Media.RELATIVE_PATH} = ?) AND " +
+            "${MediaStore.Video.Media.IS_PENDING} = 1"
+        val arguments = arrayOf(name, "$PUBLIC_FOLDER/", PUBLIC_FOLDER)
+        try {
+            context.contentResolver.query(
+                collection,
+                arrayOf(MediaStore.Video.Media._ID),
+                selection,
+                arguments,
+                null,
+            )?.use { cursor ->
+                while (cursor.moveToNext()) {
+                    val uri = ContentUris.withAppendedId(collection, cursor.getLong(0))
+                    runCatching { context.contentResolver.delete(uri, null, null) }
+                }
+            }
+        } catch (_: Exception) {
+            // A stale row is only a leak; never let it block a real publish.
         }
     }
 
@@ -224,6 +274,7 @@ object DownloadStorage {
     }
 
     /** Reads saved download jobs from persistent storage. */
+    @Synchronized
     fun getSavedJobs(context: Context): List<DownloadJob> {
         val file = File(context.filesDir, DOWNLOADS_RECORD_FILE)
         if (!file.exists()) return emptyList()
@@ -236,19 +287,24 @@ object DownloadStorage {
     }
 
     /** Saves download jobs atomically to persistent storage. */
+    @Synchronized
     fun saveJobs(context: Context, jobs: List<DownloadJob>) {
         val file = File(context.filesDir, DOWNLOADS_RECORD_FILE)
         val tmp = File(context.filesDir, "$DOWNLOADS_RECORD_FILE.tmp")
         try {
             val content = json.encodeToString(jobs)
             tmp.writeText(content)
-            tmp.renameTo(file)
+            // POSIX rename replaces the destination atomically. File.renameTo
+            // is allowed to fail when the target already exists on some
+            // providers, which would silently lose the saved records.
+            Os.rename(tmp.absolutePath, file.absolutePath)
         } catch (_: Exception) {
             // Leave previous file untouched on error
         }
     }
 
     /** Removes a job record from persistent storage. */
+    @Synchronized
     fun removeJob(context: Context, id: String) {
         val current = getSavedJobs(context)
         val updated = current.filter { it.id != id }
@@ -259,10 +315,12 @@ object DownloadStorage {
      * Scans the working directory for finished media files that have not yet been
      * published into the public collection, publishes them, and records them.
      */
+    @Synchronized
     fun reconcile(context: Context) {
         val dir = workingDirectory(context)
         if (!dir.exists() || !dir.isDirectory) return
 
+        migrateLegacyPartials(dir)
         val saved = getSavedJobs(context).toMutableList()
         val foundFiles = mutableListOf<File>()
         scanCompletedFiles(dir, foundFiles)
@@ -277,30 +335,57 @@ object DownloadStorage {
             }
             val result = publish(context, file)
             if (result is Result.Published || result is Result.Indexed) {
-                val existsInSaved = saved.any { job ->
-                    job.destination.endsWith(file.name) || job.destination.endsWith(cleanName)
+                // Update the saved record, not just the file. A process death
+                // after the engine finished but before the last save leaves a
+                // running record that would otherwise be shown as paused.
+                if (DownloadRecords.markCompleted(saved, file, cleanName, length)) {
+                    changed = true
                 }
-                if (!existsInSaved) {
-                    val restoredJob = DownloadJob(
-                        id = "restored-${cleanName.hashCode().toUInt()}",
-                        title = cleanName.substringBeforeLast('.'),
-                        destination = file.absolutePath,
-                        state = "completed",
-                        progress = DownloadProgress(
-                            downloaded = length,
-                            total = length,
-                            bytesPerSecond = 0.0,
-                            attempt = 1,
-                            workers = 1,
-                        ),
-                    )
-                    saved.add(restoredJob)
+            }
+        }
+
+        // The process can also die after publishing the file (so the working
+        // copy is already gone) but before the record is marked as completed.
+        // Look the finished file up in the public collection before treating
+        // the job as paused.
+        for (job in saved.toList()) {
+            if (job.state == "completed" || job.destination.isBlank()) continue
+            val file = File(job.destination)
+            if (file.exists()) continue
+            val cleanName = if (file.name.endsWith(".mkv.mp4", ignoreCase = true)) {
+                file.name.removeSuffix(".mp4")
+            } else {
+                file.name
+            }
+            if (publishedUri(context, file) != null) {
+                val bytes = job.progress.total?.takeIf { it > 0 }
+                    ?: job.progress.downloaded
+                if (DownloadRecords.markCompleted(saved, file, cleanName, bytes)) {
                     changed = true
                 }
             }
         }
         if (changed) {
             saveJobs(context, saved)
+        }
+    }
+
+    /**
+     * Renames old `<container>.mp4.part` sidecars to the `<container>.part`
+     * names the current bridge derives, so paused downloads from before the
+     * container fix can still resume.
+     */
+    private fun migrateLegacyPartials(dir: File) {
+        val files = dir.listFiles() ?: return
+        for (file in files) {
+            if (file.isDirectory) {
+                migrateLegacyPartials(file)
+                continue
+            }
+            val target = DownloadRecords.legacyPartialTarget(file) ?: continue
+            if (!target.exists()) {
+                file.renameTo(target)
+            }
         }
     }
 
@@ -312,12 +397,7 @@ object DownloadStorage {
             } else if (file.isFile) {
                 val name = file.name
                 if (name.endsWith(".part") || name.endsWith(".part.json")) continue
-                val isVideo = name.endsWith(".mkv.mp4", ignoreCase = true) ||
-                    name.endsWith(".mp4", ignoreCase = true) ||
-                    name.endsWith(".mkv", ignoreCase = true) ||
-                    name.endsWith(".webm", ignoreCase = true) ||
-                    name.endsWith(".ts", ignoreCase = true)
-                if (isVideo) {
+                if (DownloadRecords.isCompletedMediaName(name)) {
                     val part = File(file.parentFile, "$name.part")
                     val meta = File(file.parentFile, "$name.part.json")
                     if (!part.exists() && !meta.exists()) {

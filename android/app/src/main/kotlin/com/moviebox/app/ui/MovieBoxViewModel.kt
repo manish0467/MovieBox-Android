@@ -10,6 +10,7 @@ import androidx.lifecycle.viewModelScope
 import com.moviebox.app.R
 import com.moviebox.app.core.CatalogItem
 import com.moviebox.app.core.DownloadJob
+import com.moviebox.app.core.DownloadRecords
 import com.moviebox.app.core.DownloadRequest
 import com.moviebox.app.core.FavoriteItem
 import com.moviebox.app.core.DownloadStorage
@@ -119,6 +120,13 @@ class MovieBoxViewModel(app: Application) : AndroidViewModel(app) {
         loadHomeDeck("0")
         loadLibrary()
         loadThemeMode()
+        // Publish files left behind by a previous process before the user
+        // opens the Downloads tab, and restore their records.
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                DownloadStorage.reconcile(getApplication<Application>())
+            }
+        }
     }
 
     /** Reads the stored colour scheme. */
@@ -331,22 +339,7 @@ class MovieBoxViewModel(app: Application) : AndroidViewModel(app) {
                 DownloadStorage.getSavedJobs(context)
             }
 
-            val merged = mutableMapOf<String, DownloadJob>()
-            for (job in savedJobs) {
-                merged[job.id] = job
-            }
-            for (job in activeJobs) {
-                merged[job.id] = job
-            }
-
-            val activeIds = activeJobs.map { it.id }.toSet()
-            val finalJobs = merged.values.map { job ->
-                if (!activeIds.contains(job.id) && (job.isRunning || job.isQueued)) {
-                    job.copy(state = "paused")
-                } else {
-                    job
-                }
-            }.sortedByDescending { it.id }
+            val finalJobs = DownloadRecords.merge(savedJobs, activeJobs)
 
             withContext(Dispatchers.IO) {
                 DownloadStorage.saveJobs(context, finalJobs)
@@ -414,6 +407,11 @@ class MovieBoxViewModel(app: Application) : AndroidViewModel(app) {
                                 destination = destinationBase,
                             ),
                         )
+                        // The native id is generated for this process. Drop the
+                        // saved placeholder now that the new job owns the file.
+                        withContext(Dispatchers.IO) {
+                            DownloadStorage.removeJob(getApplication(), job.id)
+                        }
                     }
                 }.onSuccess {
                     loadDownloads()

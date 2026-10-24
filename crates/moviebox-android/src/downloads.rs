@@ -11,6 +11,7 @@
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::{Deserialize, Serialize};
 
@@ -102,11 +103,14 @@ impl DownloadJob {
 
 use serde_json::{Value, json};
 
+/// A process-wide counter, so two managers in one process cannot hand out the
+/// same id either.
+static JOB_ID_COUNTER: AtomicU64 = AtomicU64::new(1);
+
 /// Keeps track of the download jobs.
 #[derive(Default)]
 pub struct DownloadManager {
     jobs: Mutex<std::collections::HashMap<String, Arc<DownloadJob>>>,
-    counter: AtomicU64,
 }
 
 impl DownloadManager {
@@ -121,7 +125,15 @@ impl DownloadManager {
         destination: PathBuf,
         cancel: Arc<AtomicBool>,
     ) -> Arc<DownloadJob> {
-        let id = format!("dl-{}", self.counter.fetch_add(1, Ordering::Relaxed) + 1);
+        // The Kotlin layer stores these ids across process deaths. Include the
+        // process and a timestamp so a new process cannot reuse a saved `dl-1`
+        // and overwrite the record of a finished download.
+        let timestamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_millis();
+        let sequence = JOB_ID_COUNTER.fetch_add(1, Ordering::Relaxed);
+        let id = format!("dl-{}-{timestamp}-{sequence}", std::process::id());
         let job = Arc::new(DownloadJob {
             id: id.clone(),
             title: request.title.clone(),
@@ -250,9 +262,44 @@ mod tests {
         job.progress.lock().unwrap().downloaded = 42;
         *job.state.lock().unwrap() = JobState::Running;
         let value = job.to_json();
-        assert_eq!(value["id"], json!("dl-1"));
+        let id = value["id"].as_str().expect("id");
+        assert!(id.starts_with("dl-"));
+        assert!(id.split('-').count() >= 4);
         assert_eq!(value["state"], json!("running"));
         assert_eq!(value["progress"]["downloaded"], json!(42));
         assert_eq!(value["season"], json!(1));
+    }
+
+    #[test]
+    fn job_ids_are_unique_across_managers() {
+        let request = DownloadRequest {
+            url: "https://example.test/a.mp4".to_string(),
+            headers: vec![],
+            title: "a".to_string(),
+            provider: "moviebox".to_string(),
+            subject_id: "1".to_string(),
+            season: 0,
+            episode: 0,
+            destination: None,
+        };
+        let first = DownloadManager::new();
+        let second = DownloadManager::new();
+        let first_id = first
+            .register(
+                &request,
+                PathBuf::from("/tmp/a.mp4"),
+                std::sync::Arc::new(AtomicBool::new(false)),
+            )
+            .id
+            .clone();
+        let second_id = second
+            .register(
+                &request,
+                PathBuf::from("/tmp/a.mp4"),
+                std::sync::Arc::new(AtomicBool::new(false)),
+            )
+            .id
+            .clone();
+        assert_ne!(first_id, second_id);
     }
 }
