@@ -13,6 +13,9 @@ import androidx.media3.ui.CaptionStyleCompat
 object PlayerSessionPreferences {
     var playbackSpeed: Float = 1.0f
 
+    /** The resolution filter the user last picked; restored when available. */
+    var lastResolutionFilter: String = "All"
+
     // Subtitle styling
     var subtitleTextSizeSp: Float = 18f
     var subtitleTextColor: Int = Color.WHITE
