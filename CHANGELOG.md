@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.12.3] - 2026-10-26
+
+### Added
+- **ToonPlay provider** — an anime and cartoon catalog: search, full details
+  with seasons and episodes, and movie playback resolved to signed
+  multi-audio HLS streams. Series playback is reported as not yet supported.
+  The engine is bumped to the v0.1.31 tag (the ToonPlay provider release).
+
 ## [0.12.2] - 2026-10-26
 
 ### Added
