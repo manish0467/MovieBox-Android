@@ -37,14 +37,19 @@ dependency on the `v0.1.28` tag.
 - **Audio track picker** for files with multiple in-file audio tracks
 - **Sleep timer** for 5–60 minutes or the end of the current episode
 - Fixed a crash when opening 4KHDHub titles
+- **The Flow-style player controls** (0.12.0): lock mode behind a touch
+  shield, double-tap seek zones with stacking ±10s, a center play/pause
+  pulse, the long-press speed boost, and subtitle timing with in-app cue
+  rendering
+- **History that resumes and lets go** (0.12.1): playback from the details
+  screen starts at the saved position, the history tab's resume button and
+  the continue-watching cards go straight into playback, and every history
+  row can be removed
 
 ## Next release candidates
 
-- Long-press speed boost
-- Lock mode
-- Subtitle timing and styling customizer
-- Fix for player top buttons that can sit under the status bar on some devices
-- Native-speaker review of Bengali and Hindi strings
+- Fix for player top buttons that can sit under the status bar on some
+  devices
 
 ## Now — getting it onto real devices
 
