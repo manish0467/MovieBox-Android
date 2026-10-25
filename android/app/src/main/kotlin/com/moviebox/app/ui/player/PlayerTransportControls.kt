@@ -3,6 +3,7 @@ package com.moviebox.app.ui.player
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -62,7 +63,9 @@ fun PlayerTransportControls(
 
     Surface(
         color = Color.Black.copy(alpha = 0.68f),
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .navigationBarsPadding(),
     ) {
         Column(
             modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),

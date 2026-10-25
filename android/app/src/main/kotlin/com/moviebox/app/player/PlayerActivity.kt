@@ -17,6 +17,7 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.addCallback
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -112,6 +113,10 @@ class PlayerActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Draw edge-to-edge and let the Compose overlay apply the safe-drawing
+        // padding itself, so the controls sit inside the status bar and
+        // cutouts on every device instead of trusting window defaults.
+        enableEdgeToEdge()
         repository.initialize(this)
 
         val url = intent.getStringExtra(EXTRA_URL).orEmpty()

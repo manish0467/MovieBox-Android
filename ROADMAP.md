@@ -45,18 +45,19 @@ dependency on the `v0.1.28` tag.
   screen starts at the saved position, the history tab's resume button and
   the continue-watching cards go straight into playback, and every history
   row can be removed
+- **The player controls respect the safe drawing** (0.12.2): the player
+  draws edge-to-edge and the overlay applies the status-bar and navigation
+  -bar padding itself, so the top buttons can no longer land under the
+  status bar or a display cutout on any device
 
 ## Next release candidates
 
-- Fix for player top buttons that can sit under the status bar on some
-  devices
+- Native-speaker review of Bengali and Hindi strings
 
 ## Now — getting it onto real devices
 
-- **A test on a real phone.** Every build so far ran on an x86_64 emulator, so
-  the arm64 library inside the release APK has never executed. A physical device
-  should install the published APK and play, download and update before a build
-  is called final.
+- ~~**A test on a real phone.**~~ Done: the release builds have been
+  exercised on a physical arm64 device.
 - **Store metadata.** The key, the CI secrets and the certificate fingerprint
   are in place; the listing itself — description, screenshots, data-safety
   answers — is the remaining piece.

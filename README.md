@@ -23,6 +23,12 @@ behind a JNI bridge.
 - Pick a source per resolution and play it with the headers the CDN needs
 - Subtitles: pick a language, download the track and switch it inside the player
 - Favourites, watch history and continue watching
+- History that works the way you expect: playing resumes at the saved point,
+  the resume button and continue-watching cards go straight into playback,
+  and any entry can be removed
+- A Flow-style player: double-tap the sides to seek (it stacks), the center
+  to play/pause, hold for 2× speed, plus lock mode, a sleep timer, audio
+  track picking and live subtitle timing
 - Downloads: start a download from any source, watch it progress, pause, resume
   (the signed link is re-resolved when it expires), remove it, or open the finished
   file — the completed file is indexed so it shows up in a gallery

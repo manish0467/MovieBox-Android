@@ -1,5 +1,13 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+- **Player: safe-drawing insets** — the player now draws edge-to-edge and
+  applies the status-bar and navigation-bar padding itself, so the top
+  buttons can no longer sit under the status bar or a display cutout on any
+  device.
+
 ## [0.12.1] - 2026-10-26
 
 ### Fixed
