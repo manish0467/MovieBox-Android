@@ -111,4 +111,9 @@
     <string name="player_seek_back_desc">Seek back 10 seconds</string>
     <string name="player_seek_forward_desc">Seek forward 10 seconds</string>
     <string name="player_play_pause">Play or pause</string>
+    <string name="player_boost_hint">Hold the video to double the playback speed.</string>
+    <string name="player_boost_chip">2× speed</string>
+    <string name="subtitle_timing">Subtitle timing</string>
+    <string name="subtitle_timing_reset">Reset</string>
+    <string name="subtitle_timing_seconds">%1$s s</string>
 </resources>
