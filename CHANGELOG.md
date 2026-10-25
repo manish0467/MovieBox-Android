@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.12.1] - 2026-10-26
+
+### Fixed
+- **History: resume** — playing from the details screen now starts at your
+  saved position (season/episode aware; completed titles start fresh)
+  instead of always from the beginning.
+- **History: resume goes straight to playback** — the history tab's Resume
+  button and the home continue-watching cards now resolve the source and
+  open the player at the saved point, instead of only opening the details
+  screen.
+- **History: removable entries** — every history row has a delete button;
+  removal goes through the engine's history manager (new
+  `nativeRemoveHistoryItem` bridge entry point) and updates the list
+  instantly.
+
 ## [0.12.0] - 2026-10-25
 
 ### Added
