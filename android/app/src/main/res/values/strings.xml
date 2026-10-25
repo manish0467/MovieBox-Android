@@ -108,4 +108,7 @@
     <string name="player_lock">Lock controls</string>
     <string name="player_unlock">Unlock controls</string>
     <string name="player_locked">Controls locked</string>
+    <string name="player_seek_back_desc">Seek back 10 seconds</string>
+    <string name="player_seek_forward_desc">Seek forward 10 seconds</string>
+    <string name="player_play_pause">Play or pause</string>
 </resources>

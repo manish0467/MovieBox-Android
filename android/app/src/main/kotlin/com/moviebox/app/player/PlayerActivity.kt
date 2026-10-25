@@ -371,10 +371,9 @@ class PlayerActivity : ComponentActivity() {
                         onDragEnd = { gesture ->
                             handleGestureEnd(gesture)
                         },
-                        onTapSurface = {
-                            val visible = !viewModel.uiState.value.controlsVisible
-                            viewModel.setControlsVisible(visible)
-                            setSystemBarsVisible(visible)
+                        onShowControls = {
+                            viewModel.setControlsVisible(true)
+                            setSystemBarsVisible(true)
                         },
                         onPlayPause = {
                             if (exoPlayer.isPlaying || exoPlayer.playWhenReady) exoPlayer.pause() else exoPlayer.play()
