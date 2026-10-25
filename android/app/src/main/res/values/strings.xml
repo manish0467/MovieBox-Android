@@ -105,4 +105,7 @@
     <string name="sleep_timer_end_of_episode">End of episode</string>
     <string name="sleep_timer_remaining">%1$s left</string>
     <string name="sleep_timer_finished">Paused by the sleep timer</string>
+    <string name="player_lock">Lock controls</string>
+    <string name="player_unlock">Unlock controls</string>
+    <string name="player_locked">Controls locked</string>
 </resources>
