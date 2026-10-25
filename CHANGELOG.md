@@ -1,6 +1,11 @@
 # Changelog
 
-## [Unreleased]
+## [0.12.2] - 2026-10-26
+
+### Added
+- **Quality memory** — the resolution you pick is remembered for the session;
+  a fresh details page starts on it when the title offers that resolution,
+  and falls back to All when it does not.
 
 ### Fixed
 - **Player: safe-drawing insets** — the player now draws edge-to-edge and
