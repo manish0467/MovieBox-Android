@@ -154,6 +154,20 @@ class MovieBoxRepository {
         ).items
     }
 
+    /** Removes one entry from the watch history. */
+    suspend fun removeHistoryItem(item: WatchHistoryItem) = withContext(Dispatchers.IO) {
+        val payload = RemoveHistoryPayload(
+            provider = item.provider,
+            subjectId = item.subjectId,
+            season = item.season,
+            episode = item.episode,
+        )
+        decodeData(
+            NativeBridge.nativeRemoveHistoryItem(json.encodeToString(RemoveHistoryPayload.serializer(), payload)),
+            RemovedPayload.serializer(),
+        ).removed
+    }
+
     suspend fun posterHeaders(url: String): Map<String, String> = withContext(Dispatchers.IO) {
         decodeData(
             NativeBridge.nativePosterUrlHeaders(url),

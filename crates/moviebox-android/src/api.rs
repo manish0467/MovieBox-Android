@@ -387,6 +387,32 @@ impl Bridge {
         Ok(json!({ "recorded": true }))
     }
 
+    /// Removes one entry from the watch history.
+    ///
+    /// The payload identifies the entry: `provider`, `subject_id`, `season`
+    /// and `episode` — the same identity the history list reports.
+    pub fn remove_history_item(&self, request_json: &str) -> Result<Value, String> {
+        #[derive(serde::Deserialize)]
+        struct RemoveHistoryRequest {
+            #[serde(default)]
+            provider: String,
+            #[serde(rename = "subject_id", default)]
+            subject_id: String,
+            #[serde(default)]
+            season: usize,
+            #[serde(default)]
+            episode: usize,
+        }
+
+        let request: RemoveHistoryRequest = serde_json::from_str(request_json)
+            .map_err(|err| format!("invalid remove payload: {err}"))?;
+
+        let mut manager = moviebox_tui::history::HistoryManager::new();
+        manager.remove(&request.provider, &request.subject_id, request.season, request.episode);
+
+        Ok(json!({ "removed": true }))
+    }
+
     /// Starts a download and returns its job id.
     pub fn start_download(&self, request_json: &str) -> Result<Value, String> {
         let request: DownloadRequest = serde_json::from_str(request_json)

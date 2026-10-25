@@ -11,11 +11,13 @@ import com.moviebox.app.core.MovieBoxRepository
 import com.moviebox.app.core.PlaybackSource
 import com.moviebox.app.core.Release
 import com.moviebox.app.core.SubtitleOption
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 data class DetailsUiState(
     val details: MediaDetails? = null,
@@ -30,6 +32,7 @@ data class DetailsUiState(
     val loading: Boolean = true,
     val resolving: Boolean = false,
     val error: String? = null,
+    val autoPlay: Boolean = false,
 ) {
     val filteredReleases: List<Release>
         get() = if (selectedResolution == "All") {
@@ -46,6 +49,39 @@ data class DetailsUiState(
 class DetailsViewModel(app: Application) : AndroidViewModel(app) {
 
     private val repository = MovieBoxRepository().also { it.initialize(app) }
+
+    /** When set, the next releases load matching this season/episode auto-plays. */
+    private var autoPlayRequested: Pair<Int, Int>? = null
+
+    /** Requests auto-playback when the given season/episode's sources arrive. */
+    fun requestAutoPlay(season: Int, episode: Int) {
+        autoPlayRequested = season to episode
+    }
+
+    /** Clears the auto-play flag once the screen has acted on it. */
+    fun clearAutoPlay() {
+        _state.update { it.copy(autoPlay = false) }
+    }
+
+    /**
+     * Saved watch position for the current selection; 0 when there is nothing
+     * to resume (or the entry is already completed).
+     */
+    suspend fun savedPositionSeconds(
+        provider: String,
+        subjectId: String,
+        season: Int,
+        episode: Int,
+    ): Long = withContext(Dispatchers.IO) {
+        runCatching { repository.history() }.getOrDefault(emptyList())
+            .firstOrNull { item ->
+                item.provider == provider && item.subjectId == subjectId &&
+                    item.season == season && item.episode == episode
+            }
+            ?.takeUnless { it.completed }
+            ?.progressSeconds
+            ?: 0L
+    }
 
     private val _state = MutableStateFlow(DetailsUiState())
     val state: StateFlow<DetailsUiState> = _state.asStateFlow()
@@ -133,12 +169,17 @@ class DetailsViewModel(app: Application) : AndroidViewModel(app) {
                     } else {
                         emptyList()
                     }
+                    val startAutoPlay = autoPlayRequested?.let { (s, e) -> s == season && e == episode } == true
+                    if (startAutoPlay) {
+                        autoPlayRequested = null
+                    }
                     _state.update {
                         it.copy(
                             releases = releases,
                             availableResolutions = available,
                             selectedResolution = "All",
                             loading = false,
+                            autoPlay = startAutoPlay || it.autoPlay,
                         )
                     }
                     loadSubtitles(provider, subjectId, releases, season, episode)
