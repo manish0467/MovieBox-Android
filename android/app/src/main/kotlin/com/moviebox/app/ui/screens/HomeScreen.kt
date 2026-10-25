@@ -119,7 +119,8 @@ fun HomeScreen(
     onSelectHomeDeckTab: (String) -> Unit,
     onToggleFavorite: (FavoriteItem) -> Unit,
     onOpenItem: (CatalogItem) -> Unit,
-    onOpenHistoryItem: (WatchHistoryItem) -> Unit,
+    onOpenHistoryItem: (WatchHistoryItem, Boolean) -> Unit,
+    onRemoveHistoryItem: (WatchHistoryItem) -> Unit,
     onPauseDownload: (String) -> Unit = {},
     onResumeDownload: (DownloadJob) -> Unit = {},
     onRemoveDownload: (String) -> Unit = {},
@@ -241,6 +242,7 @@ fun HomeScreen(
                     onSelectHomeDeckTab = onSelectHomeDeckTab,
                     onOpenItem = onOpenItem,
                     onOpenHistoryItem = onOpenHistoryItem,
+                    onRemoveHistoryItem = onRemoveHistoryItem,
                 )
                 MainTab.FAVORITES -> FavoritesTabContent(
                     state = state,
@@ -250,6 +252,7 @@ fun HomeScreen(
                 MainTab.HISTORY -> HistoryTabContent(
                     state = state,
                     onOpenHistoryItem = onOpenHistoryItem,
+                    onRemoveHistoryItem = onRemoveHistoryItem,
                 )
                 MainTab.DOWNLOADS -> DownloadsTabContent(
                     downloads = state.downloads,
@@ -272,7 +275,8 @@ private fun HomeTabContent(
     onProviderSelected: (String) -> Unit,
     onSelectHomeDeckTab: (String) -> Unit,
     onOpenItem: (CatalogItem) -> Unit,
-    onOpenHistoryItem: (WatchHistoryItem) -> Unit,
+    onOpenHistoryItem: (WatchHistoryItem, Boolean) -> Unit,
+    onRemoveHistoryItem: (WatchHistoryItem) -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
         OutlinedTextField(
@@ -384,7 +388,7 @@ private fun HomeTabContent(
                             items(state.continueWatching) { item ->
                                 ContinueWatchingCard(
                                     item = item,
-                                    onClick = { onOpenHistoryItem(item) },
+                                    onClick = { onOpenHistoryItem(item, true) },
                                 )
                             }
                         }
@@ -625,7 +629,8 @@ private fun FavoritesTabContent(
 @Composable
 private fun HistoryTabContent(
     state: HomeUiState,
-    onOpenHistoryItem: (WatchHistoryItem) -> Unit,
+    onOpenHistoryItem: (WatchHistoryItem, Boolean) -> Unit,
+    onRemoveHistoryItem: (WatchHistoryItem) -> Unit,
 ) {
     if (state.historyLoading && state.history.isEmpty()) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -664,7 +669,12 @@ private fun HistoryTabContent(
             contentPadding = PaddingValues(vertical = 8.dp),
         ) {
             items(state.history, key = { it.provider + "/" + it.subjectId + "/" + it.season + "/" + it.episode }) { item ->
-                HistoryRow(item = item, onClick = { onOpenHistoryItem(item) })
+                HistoryRow(
+                    item = item,
+                    onClick = { onOpenHistoryItem(item, false) },
+                    onResume = { onOpenHistoryItem(item, true) },
+                    onRemove = { onRemoveHistoryItem(item) },
+                )
             }
         }
     }
@@ -735,7 +745,12 @@ private fun ContinueWatchingCard(item: WatchHistoryItem, onClick: () -> Unit) {
 }
 
 @Composable
-private fun HistoryRow(item: WatchHistoryItem, onClick: () -> Unit) {
+private fun HistoryRow(
+    item: WatchHistoryItem,
+    onClick: () -> Unit,
+    onResume: () -> Unit,
+    onRemove: () -> Unit,
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -786,8 +801,15 @@ private fun HistoryRow(item: WatchHistoryItem, onClick: () -> Unit) {
             )
         }
         Spacer(modifier = Modifier.width(8.dp))
-        Button(onClick = onClick) {
+        Button(onClick = onResume) {
             Text(stringResource(R.string.resume))
+        }
+        IconButton(onClick = onRemove) {
+            Icon(
+                Icons.Filled.Delete,
+                contentDescription = stringResource(R.string.history_remove),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }

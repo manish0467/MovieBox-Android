@@ -213,6 +213,17 @@ data class SubtitlesPayload(val captions: List<SubtitleOption> = emptyList())
 data class ToggleFavoritePayload(val favorite: Boolean = false)
 
 @Serializable
+data class RemoveHistoryPayload(
+    val provider: String = "",
+    @SerialName("subject_id") val subjectId: String = "",
+    val season: Int = 0,
+    val episode: Int = 0,
+)
+
+@Serializable
+data class RemovedPayload(val removed: Boolean = false)
+
+@Serializable
 data class HeadersPayload(val headers: List<List<String>> = emptyList())
 
 /** The colour scheme the app uses, and the one it stores. */

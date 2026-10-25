@@ -69,11 +69,23 @@ fun DetailsScreen(
     onEpisodeSelected: (Int) -> Unit,
     onPlay: (Release, SubtitleOption?) -> Unit,
     onDownload: (Release) -> Unit,
+    onAutoPlayConsumed: () -> Unit = {},
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(state.error) {
         state.error?.let { snackbarHostState.showSnackbar(it) }
+    }
+
+    // Auto-play (requested by the history tab's resume button): start the
+    // first available source as soon as this title's releases arrive.
+    LaunchedEffect(state.autoPlay, state.releases) {
+        if (state.autoPlay) {
+            state.filteredReleases.firstOrNull()?.let { release ->
+                onPlay(release, state.selectedSubtitle)
+            }
+            onAutoPlayConsumed()
+        }
     }
 
     Scaffold(

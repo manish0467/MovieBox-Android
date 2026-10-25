@@ -63,6 +63,9 @@ object NativeBridge {
     external fun nativeRecordWatchProgress(itemJson: String): String
 
     @JvmStatic
+    external fun nativeRemoveHistoryItem(requestJson: String): String
+
+    @JvmStatic
     external fun nativeTvPlaylists(): String
 
     @JvmStatic

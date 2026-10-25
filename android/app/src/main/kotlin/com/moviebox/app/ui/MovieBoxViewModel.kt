@@ -327,6 +327,21 @@ class MovieBoxViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    /** Removes one entry from the watch history (list updates optimistically). */
+    fun removeHistoryItem(item: WatchHistoryItem) {
+        viewModelScope.launch {
+            runCatching { repository.removeHistoryItem(item) }
+                .onSuccess {
+                    _state.update { current ->
+                        current.copy(
+                            history = current.history.filterNot { it.sameEntryAs(item) },
+                            continueWatching = current.continueWatching.filterNot { it.sameEntryAs(item) },
+                        )
+                    }
+                }
+        }
+    }
+
     fun toggleFavorite(item: FavoriteItem) {
         viewModelScope.launch {
             runCatching { repository.toggleFavorite(item) }
@@ -545,3 +560,8 @@ class MovieBoxViewModel(app: Application) : AndroidViewModel(app) {
         _state.update { it.copy(error = null) }
     }
 }
+
+/** Identity of a history entry: provider + subject + season/episode. */
+private fun WatchHistoryItem.sameEntryAs(other: WatchHistoryItem): Boolean =
+    provider == other.provider && subjectId == other.subjectId &&
+        season == other.season && episode == other.episode

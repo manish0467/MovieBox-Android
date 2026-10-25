@@ -262,6 +262,19 @@ pub extern "system" fn Java_com_moviebox_app_core_NativeBridge_nativeRecordWatch
 }
 
 #[unsafe(no_mangle)]
+pub extern "system" fn Java_com_moviebox_app_core_NativeBridge_nativeRemoveHistoryItem<'local>(
+    mut env: JNIEnv<'local>,
+    _class: JClass<'local>,
+    request_json: JString<'local>,
+) -> jstring {
+    let request_json = read_string(&mut env, &request_json);
+    match bridge().remove_history_item(&request_json) {
+        Ok(value) => return_json(&mut env, api::ok_envelope(&value)),
+        Err(err) => error_json(&mut env, &err),
+    }
+}
+
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_com_moviebox_app_core_NativeBridge_nativeGetThemeMode<'local>(
     mut env: JNIEnv<'local>,
     _class: JClass<'local>,

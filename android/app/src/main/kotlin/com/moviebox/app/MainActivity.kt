@@ -12,6 +12,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
@@ -251,6 +252,7 @@ private fun MovieBoxApp(
     onDownloadRelease: (com.moviebox.app.core.Release) -> Unit,
 ) {
     val navController = rememberNavController()
+    val coroutineScope = rememberCoroutineScope()
     val homeState by homeViewModel.state.collectAsStateWithLifecycle()
     val detailsState by detailsViewModel.state.collectAsStateWithLifecycle()
     val liveTvState by liveTvViewModel.state.collectAsStateWithLifecycle()
@@ -270,7 +272,7 @@ private fun MovieBoxApp(
                     detailsViewModel.load(item.id.provider, item.id.value)
                     navController.navigate(detailsRoute(item.id.provider, item.id.value))
                 },
-                onOpenHistoryItem = { historyItem ->
+                onOpenHistoryItem = { historyItem, autoPlay ->
                     detailsViewModel.load(historyItem.provider, historyItem.subjectId)
                     if (historyItem.season > 0) {
                         detailsViewModel.selectSeason(historyItem.season)
@@ -278,8 +280,12 @@ private fun MovieBoxApp(
                     if (historyItem.episode > 0) {
                         detailsViewModel.selectEpisode(historyItem.episode)
                     }
+                    if (autoPlay) {
+                        detailsViewModel.requestAutoPlay(historyItem.season, historyItem.episode)
+                    }
                     navController.navigate(detailsRoute(historyItem.provider, historyItem.subjectId))
                 },
+                onRemoveHistoryItem = homeViewModel::removeHistoryItem,
                 themeKey = themeKey,
                 onThemeSelected = homeViewModel::selectTheme,
                 onOpenLiveTv = { navController.navigate("live") },
@@ -341,25 +347,34 @@ private fun MovieBoxApp(
                 onSeasonSelected = detailsViewModel::selectSeason,
                 onEpisodeSelected = detailsViewModel::selectEpisode,
                 onPlay = { release, sub ->
-                    detailsViewModel.resolve(release) { source ->
+                    coroutineScope.launch {
                         val details = detailsState.details
-                        onPlay(
-                            source,
-                            details?.title.orEmpty(),
-                            details?.id?.provider.orEmpty(),
-                            details?.id?.value.orEmpty(),
-                            details?.posterUrl,
-                            detailsState.selectedSeason,
-                            detailsState.selectedEpisode,
-                            details?.year,
-                            0L,
-                            sub?.url,
-                            sub?.name,
-                            detailsState.subtitles,
+                        val startPositionSec = detailsViewModel.savedPositionSeconds(
+                            provider = details?.id?.provider.orEmpty(),
+                            subjectId = details?.id?.value.orEmpty(),
+                            season = detailsState.selectedSeason,
+                            episode = detailsState.selectedEpisode,
                         )
+                        detailsViewModel.resolve(release) { source ->
+                            onPlay(
+                                source,
+                                details?.title.orEmpty(),
+                                details?.id?.provider.orEmpty(),
+                                details?.id?.value.orEmpty(),
+                                details?.posterUrl,
+                                detailsState.selectedSeason,
+                                detailsState.selectedEpisode,
+                                details?.year,
+                                startPositionSec,
+                                sub?.url,
+                                sub?.name,
+                                detailsState.subtitles,
+                            )
+                        }
                     }
                 },
                 onDownload = onDownloadRelease,
+                onAutoPlayConsumed = detailsViewModel::clearAutoPlay,
             )
         }
     }
