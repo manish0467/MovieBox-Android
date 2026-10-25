@@ -1,8 +1,21 @@
 # MovieBox Android
 
+[![Release](https://img.shields.io/github/v/release/manish0467/MovieBox-Android?style=flat-square&color=98c379)](https://github.com/manish0467/MovieBox-Android/releases)
+[![License](https://img.shields.io/github/license/manish0467/MovieBox-Android?style=flat-square&color=e5c07b)](LICENSE)
+[![Platform](https://img.shields.io/badge/platform-Android-3ddc84?style=flat-square&logo=android&logoColor=white)](https://github.com/manish0467/MovieBox-Android/releases)
+[![Core](https://img.shields.io/badge/core-Rust-dea584?style=flat-square&logo=rust&logoColor=white)](https://github.com/manish0467/MovieBox-Tui)
+
 The native Android app for [MovieBox](https://github.com/manish0467/MovieBox-Tui) —
 Jetpack Compose for the UI, Media3 for playback, and the shared Rust core engine
 behind a JNI bridge.
+
+<!-- Screenshots: drop images into docs/screenshots/ and uncomment
+## Screenshots
+
+| Browse | Player | Downloads |
+|---|---|---|
+| ![Browse](docs/screenshots/browse.png) | ![Player](docs/screenshots/player.png) | ![Downloads](docs/screenshots/downloads.png) |
+-->
 
 ## What it does
 
@@ -13,6 +26,14 @@ behind a JNI bridge.
 - Downloads: start a download from any source, watch it progress, pause, resume
   (the signed link is re-resolved when it expires), remove it, or open the finished
   file — the completed file is indexed so it shows up in a gallery
+
+## Install
+
+Grab the latest APK from **[Releases](https://github.com/manish0467/MovieBox-Android/releases)**
+(`app-release.apk`), enable *Install unknown apps* for your browser if Android asks,
+and open it. Preview builds are signed for sideloading.
+
+Prefer building it yourself? See [Build](#build) below.
 
 ## Layout
 
