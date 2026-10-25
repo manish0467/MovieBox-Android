@@ -1,5 +1,6 @@
 package com.moviebox.app.ui.player.settings.pages
 
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -8,10 +9,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -183,6 +186,61 @@ fun SubtitleStyleSection(
                     },
                 )
             }
+
+            item {
+                Text(
+                    text = stringResource(R.string.subtitle_timing),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(top = 16.dp, bottom = 4.dp),
+                )
+            }
+            item { SubtitleTimingControls(feature = feature) }
+        }
+    }
+}
+
+/** Formats a subtitle offset for the timing controls, e.g. "+0.5" or "−1.25". */
+internal fun formatSubtitleOffset(offsetMs: Long): String {
+    if (offsetMs == 0L) return "0"
+    val seconds = offsetMs / 1000.0
+    val sign = if (offsetMs > 0) "+" else "−"
+    val body = "%.2f".format(kotlin.math.abs(seconds)).trimEnd('0').trimEnd('.')
+    return sign + body
+}
+
+@Composable
+private fun SubtitleTimingControls(
+    feature: SubtitleTimingFeature,
+    modifier: Modifier = Modifier,
+) {
+    val offsetMs by feature.offsetMs.collectAsState()
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 2.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        TextButton(onClick = { feature.adjustOffset(-500L) }) {
+            Text(stringResource(R.string.subtitle_timing_seconds, formatSubtitleOffset(-500)))
+        }
+        TextButton(onClick = { feature.adjustOffset(-250L) }) {
+            Text(stringResource(R.string.subtitle_timing_seconds, formatSubtitleOffset(-250)))
+        }
+        Text(
+            text = stringResource(R.string.subtitle_timing_seconds, formatSubtitleOffset(offsetMs)),
+            style = MaterialTheme.typography.titleSmall,
+            modifier = Modifier.padding(horizontal = 4.dp),
+        )
+        TextButton(onClick = { feature.adjustOffset(250L) }) {
+            Text(stringResource(R.string.subtitle_timing_seconds, formatSubtitleOffset(250)))
+        }
+        TextButton(onClick = { feature.adjustOffset(500L) }) {
+            Text(stringResource(R.string.subtitle_timing_seconds, formatSubtitleOffset(500)))
+        }
+        TextButton(onClick = feature::resetOffset) {
+            Text(stringResource(R.string.subtitle_timing_reset))
         }
     }
 }
