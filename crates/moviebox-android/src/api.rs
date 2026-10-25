@@ -268,6 +268,15 @@ impl Bridge {
                 )
                 .await
             }
+            ProviderKind::ToonPlay => {
+                ReleaseProvider::episode_streams(
+                    &self.service.toonplay_client,
+                    subject_id,
+                    season,
+                    episode,
+                )
+                .await
+            }
             ProviderKind::Addons => {
                 Err(moviebox_tui::providers::models::ProviderError::Unavailable(
                     "Addons do not expose episode streams".to_string(),

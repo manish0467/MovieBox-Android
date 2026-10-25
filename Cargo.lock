@@ -1146,8 +1146,8 @@ dependencies = [
 
 [[package]]
 name = "moviebox-tui"
-version = "0.1.28"
-source = "git+https://github.com/manish0467/MovieBox-Tui?tag=v0.1.30#403516209b7dbd44bb68eda9a24fac24a54a7db0"
+version = "0.1.31"
+source = "git+https://github.com/manish0467/MovieBox-Tui?tag=v0.1.31#817e6037abac3a3d45e8ee6ea76955aeb7b78c64"
 dependencies = [
  "base64 0.23.1",
  "dirs",

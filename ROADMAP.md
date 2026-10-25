@@ -66,15 +66,17 @@ dependency on the `v0.1.28` tag.
 
 ## Later
 
-- **A new provider: toonplay.in.** The catalogue API of the site is clean and
-  reachable (`animesalt.streamindia.co.in/api`), but the playback chain is not:
-  the site's own extractor serves a certificate for a different domain, and
-  the fallback needs a JavaScript unpacker plus a CryptoJS compatible AES
-  decryption to turn the packed player page into a stream link. That is a
-  brittle thing to build against a site that can change at any time, so it
-  waits until the extractor works again.
-- **cinejoy.pk and flixer.gd** follow the same shape of work: find the API
-  behind the page, write a client, add a provider kind.
+- ~~**A new provider: toonplay.in.**~~ Shipped (0.12.3) for movies: the site
+  abandoned its broken extractor for a direct file host, so the catalog and
+  movie playback work through clean API calls. Series playback still routes
+  through a tamper-protected third-party embed and stays unavailable.
+- ~~**flixer.gd**~~ Not planned: investigated with a runtime capture (October
+  2026) — the site streams well in a browser, but its playback URLs are
+  derived by deliberately obfuscated, wasm-backed signing against scraping.
+  Deriving them in the engine would be the exact brittle treadmill this
+  roadmap avoids.
+- **cinejoy.pk** follows the same shape of work: find the API behind the
+  page, write a client, add a provider kind.
 - **A custom endpoint per provider** — the engine's Dramachi client already
   has `with_base_url`, so a per-provider base-URL override is feasible for the
   HTML providers. This is the escape hatch for a provider that changes its
