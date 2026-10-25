@@ -11,6 +11,7 @@ import com.moviebox.app.core.MovieBoxRepository
 import com.moviebox.app.core.PlaybackSource
 import com.moviebox.app.core.Release
 import com.moviebox.app.core.SubtitleOption
+import com.moviebox.app.player.PlayerSessionPreferences
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -132,6 +133,7 @@ class DetailsViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun selectResolution(resolution: String) {
+        PlayerSessionPreferences.lastResolutionFilter = resolution
         _state.update { it.copy(selectedResolution = resolution) }
     }
 
@@ -177,7 +179,10 @@ class DetailsViewModel(app: Application) : AndroidViewModel(app) {
                         it.copy(
                             releases = releases,
                             availableResolutions = available,
-                            selectedResolution = "All",
+                            selectedResolution = restoredResolutionFilter(
+                                remembered = PlayerSessionPreferences.lastResolutionFilter,
+                                available = available,
+                            ),
                             loading = false,
                             autoPlay = startAutoPlay || it.autoPlay,
                         )
@@ -277,3 +282,11 @@ class DetailsViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 }
+
+/**
+ * The resolution filter a fresh details load starts on: the user's last pick
+ * when this title offers it, otherwise "All". "All" also wins when the
+ * remembered pick *is* "All", keeping the value canonical.
+ */
+internal fun restoredResolutionFilter(remembered: String, available: List<String>): String =
+    if (remembered != "All" && available.contains(remembered)) remembered else "All"
